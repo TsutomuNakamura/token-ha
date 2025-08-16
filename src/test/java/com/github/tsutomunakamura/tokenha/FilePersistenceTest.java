@@ -10,32 +10,45 @@ import static org.junit.jupiter.api.Assertions.*;
 public class FilePersistenceTest {
     
     private static final String TEST_FILE = "test-persistence.json";
+    private FilePersistence currentTestInstance; // Track the current test instance
     
     @AfterEach
     public void cleanup() {
-        // Clean up test file after each test
-        FilePersistence fp = new FilePersistence(TEST_FILE);
-        fp.deleteFile();
+        // Close the current test instance first to release the lock
+        if (currentTestInstance != null) {
+            currentTestInstance.close();
+            currentTestInstance = null;
+        }
+        
+        // Clean up test files after each test
+        try {
+            java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(TEST_FILE));
+            java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get("new-file.json"));
+        } catch (java.io.IOException e) {
+            System.err.println("Failed to delete test file: " + e.getMessage());
+        }
     }
     
     @Test
     public void testSaveAndLoad() {
-        FilePersistence filePersistence = new FilePersistence(TEST_FILE);
-        
-        // Test save
-        String testData = "{\"tokens\":[{\"token\":\"test123\",\"timeMillis\":1692186615000}]}";
-        filePersistence.save(testData);
-        
-        // Test file exists
-        assertTrue(filePersistence.fileExists());
-        
-        // Test load
-        String loadedData = filePersistence.load();
-        assertNotNull(loadedData);
-        assertEquals(testData, loadedData);
-        
-        System.out.println("Saved data: " + testData);
-        System.out.println("Loaded data: " + loadedData);
+        try (FilePersistence filePersistence = new FilePersistence(TEST_FILE)) {
+            currentTestInstance = filePersistence;
+            
+            // Test save
+            String testData = "{\"tokens\":[{\"token\":\"test123\",\"timeMillis\":1692186615000}]}";
+            filePersistence.save(testData);
+            
+            // Test file exists
+            assertTrue(filePersistence.fileExists());
+            
+            // Test load
+            String loadedData = filePersistence.load();
+            assertNotNull(loadedData);
+            assertEquals(testData, loadedData);
+            
+            System.out.println("Saved data: " + testData);
+            System.out.println("Loaded data: " + loadedData);
+        }
     }
     
     @Test
@@ -60,14 +73,17 @@ public class FilePersistenceTest {
     }
     
     @Test
-    public void testLoadNonExistentFile() {
-        FilePersistence filePersistence = new FilePersistence("non-existent-file.json");
-        
-        // Should not exist
-        assertFalse(filePersistence.fileExists());
-        
-        // Load should return null
-        String loadedData = filePersistence.load();
-        assertNull(loadedData);
+    public void testLoadFromNewFile() {
+        try (FilePersistence filePersistence = new FilePersistence("new-file.json")) {
+            currentTestInstance = filePersistence;
+            
+            // File gets created when FilePersistence is instantiated (for locking)
+            assertTrue(filePersistence.fileExists());
+            
+            // Load from new/empty file should return empty content
+            String loadedData = filePersistence.load();
+            assertNotNull(loadedData);
+            assertEquals("", loadedData); // Empty file returns empty string
+        }
     }
 }

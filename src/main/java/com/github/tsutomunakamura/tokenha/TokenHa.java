@@ -56,6 +56,9 @@ public class TokenHa implements AutoCloseable {
     // Cleanup method to unregister from singleton eviction thread
     public void close() {
         EvictionThread.getInstance().unregister(this);
+        if (filePersistence != null) {
+            filePersistence.close();
+        }
     }
 
     public boolean availableToAdd() {
