@@ -27,3 +27,5 @@ Thumbs.db
 
 # Java compiled classes (backup in case target/ is not enough)
 *.class
+
+tokenha-data.json
