@@ -3,6 +3,7 @@ package com.github.tsutomunakamura.tokenha;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
@@ -19,8 +20,15 @@ public class TokenHa {
     private long coolTimeToAddSeconds = 1000; // Time in seconds to wait before adding a new token
 
     public void add(String token) {
-
         fifoQueue.add(new TokenElement(token, System.currentTimeMillis()));
+    }
+
+    public TokenElement newestToken() {
+        return fifoQueue.peekLast();
+    }
+
+    public Iterator<TokenElement> getDescIterator() {
+        return fifoQueue.descendingIterator();
     }
 
     public boolean availableToAdd() {
