@@ -1,6 +1,7 @@
 package com.github.tsutomunakamura.tokenha;
 
 import java.util.Set;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
@@ -8,6 +9,8 @@ import java.util.concurrent.TimeUnit;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.lang.ref.WeakReference;
+
+import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
 /**
  * A singleton thread class for handling token eviction tasks across all TokenHa instances.
@@ -93,11 +96,50 @@ public class EvictionThread {
     private void evictionTask() {
         // Clean up dead references first
         cleanupDeadReferences();
-
+        
         // Stop thread if no active instances remain
         if (registeredInstances.isEmpty()) {
             stop();
+            return;
         }
+        
+        // Evict expired tokens from each TokenHa instance
+        System.out.println("Eviction task running at " + getCurrentTimeString() + 
+                          " - Managing " + registeredInstances.size() + " TokenHa instances");
+        
+        int totalTokensBefore = 0;
+        int totalTokensAfter = 0;
+        int totalEvicted = 0;
+        
+        for (WeakReference<TokenHa> ref : registeredInstances) {
+            TokenHa tokenHa = ref.get();
+            
+            // WeakReference can become null at any time due to GC
+            if (tokenHa == null) {
+                continue;
+            }
+            
+            int queueSizeBefore = tokenHa.getQueueSize();
+            totalTokensBefore += queueSizeBefore;
+            
+            // Perform actual eviction
+            List<TokenElement> evictedTokens = tokenHa.evictExpiredTokens();
+            int evictedCount = (evictedTokens != null) ? evictedTokens.size() : 0;
+            totalEvicted += evictedCount;
+            
+            int queueSizeAfter = tokenHa.getQueueSize();
+            totalTokensAfter += queueSizeAfter;
+            
+            if (evictedCount > 0) {
+                System.out.println("  TokenHa instance: " + queueSizeBefore + " -> " + queueSizeAfter + 
+                                 " (evicted " + evictedCount + " expired tokens)");
+            } else {
+                System.out.println("  TokenHa instance: " + queueSizeBefore + " tokens (no expired tokens)");
+            }
+        }
+        
+        System.out.println("  Total: " + totalTokensBefore + " -> " + totalTokensAfter + 
+                          " tokens (evicted " + totalEvicted + " expired)");
     }
     
     private String getCurrentTimeString() {
