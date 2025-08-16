@@ -17,7 +17,7 @@ public class TokenHa implements AutoCloseable {
     private static final int DEFAUILT_EXPIREATION_TIME_SECONCDS = 60; // Expiration time in seconds
     private int numberOfLastTokens = 1; // Number of last tokens to keep
     private int maxTokens = 10; // Maximum number of tokens to keep
-    private long coolTimeToAddSeconds = 1000; // Time in seconds to wait before adding a new token
+    private long coolTimeToAddMillis = 1000; // Time in milliseconds to wait before adding a new token
     
     // File path for persisting tokens
     private String persistenceFilePath = "tokenha-data.json"; // Default file path
@@ -29,16 +29,22 @@ public class TokenHa implements AutoCloseable {
         filePersistence = new FilePersistence(persistenceFilePath);
     }
 
-    public synchronized void addIfAvailable(String token) {
-        if (!availableToAdd()) {
-            return;
+    public synchronized boolean addIfAvailable(String token) {
+        if (!passedCoolTimeToAdd()) {
+            return false;
+        }
+
+        if (isFilled()) {
+            fifoQueue.poll();
         }
         add(token);
+
+        return true;
     }
 
     private synchronized void add(String token) {
         fifoQueue.add(new TokenElement(token, System.currentTimeMillis()));
-        saveToFile();
+        filePersistence.save(toJson());
     }
 
     public TokenElement newestToken() {
@@ -73,8 +79,8 @@ public class TokenHa implements AutoCloseable {
         TokenElement newestToken = fifoQueue.peekLast();
         if (newestToken != null) {
             long currentTime = System.currentTimeMillis();
-            long timeSinceLastToken = (currentTime - newestToken.getTimeMillis()) / 1000; // Convert to seconds
-            return timeSinceLastToken >= coolTimeToAddSeconds;
+            long timeSinceLastToken = currentTime - newestToken.getTimeMillis(); // Keep in milliseconds
+            return timeSinceLastToken >= coolTimeToAddMillis;
         }
         return true;
     }
@@ -100,34 +106,6 @@ public class TokenHa implements AutoCloseable {
         }
 
         return expiredTokens.size() > 0 ? expiredTokens : null;
-    }
-    
-    /**
-     * Serialize TokenHa to simple JSON containing only the tokens.
-     * @return JSON string representation of tokens
-     */
-    public String toJson() {
-        StringBuilder json = new StringBuilder();
-        json.append("{\"tokens\":[");
-        
-        boolean first = true;
-        for (TokenElement element : fifoQueue) {
-            if (!first) {
-                json.append(",");
-            }
-            json.append(element.toJson());
-            first = false;
-        }
-        
-        json.append("]}");
-        return json.toString();
-    }
-    
-    /**
-     * Save the current tokens to a file for persistence.
-     */
-    private void saveToFile() {
-        filePersistence.save(toJson());
     }
     
     /**
@@ -172,5 +150,26 @@ public class TokenHa implements AutoCloseable {
      */
     public boolean deletePersistenceFile() {
         return filePersistence.deleteFile();
+    }
+
+    /**
+     * Serialize TokenHa to simple JSON containing only the tokens.
+     * @return JSON string representation of tokens
+     */
+    public String toJson() {
+        StringBuilder json = new StringBuilder();
+        json.append("{\"tokens\":[");
+        
+        boolean first = true;
+        for (TokenElement element : fifoQueue) {
+            if (!first) {
+                json.append(",");
+            }
+            json.append(element.toJson());
+            first = false;
+        }
+        
+        json.append("]}");
+        return json.toString();
     }
 }

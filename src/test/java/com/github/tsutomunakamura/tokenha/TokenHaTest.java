@@ -125,4 +125,65 @@ public class TokenHaTest {
         }
     }
     
+    @Test
+    public void testAddIfAvailableReturnValues() {
+        try (TokenHa tokenHa = new TokenHa()) {
+            // First token should be added successfully
+            assertTrue(tokenHa.addIfAvailable("token1"));
+            assertEquals(1, tokenHa.getQueueSize());
+            
+            // Second token should fail due to cooldown (coolTimeToAddSeconds = 1000ms)
+            assertFalse(tokenHa.addIfAvailable("token2"));
+            assertEquals(1, tokenHa.getQueueSize());
+            
+            // Wait for cooldown period
+            try {
+                Thread.sleep(1100); // Wait longer than coolTimeToAddSeconds
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            
+            // Now the second token should be added successfully
+            assertTrue(tokenHa.addIfAvailable("token2"));
+            assertEquals(2, tokenHa.getQueueSize());
+        }
+    }
+    
+    @Test
+    public void testQueueOverflowBehavior() {
+        try (TokenHa tokenHa = new TokenHa()) {
+            // Fill the queue to max capacity (10 tokens)
+            // We need to work around the cooldown period
+            long baseTime = System.currentTimeMillis() - 20000; // Start 20 seconds in the past
+            
+            // Use reflection to bypass cooldown for testing
+            try {
+                java.lang.reflect.Field queueField = TokenHa.class.getDeclaredField("fifoQueue");
+                queueField.setAccessible(true);
+                @SuppressWarnings("unchecked")
+                Deque<TokenElement> queue = (Deque<TokenElement>) queueField.get(tokenHa);
+                
+                // Manually add 10 tokens with timestamps in the past (so cooldown has passed)
+                for (int i = 0; i < 10; i++) {
+                    queue.add(new TokenElement("token" + i, baseTime + (i * 1000))); // 1 second apart, in the past
+                }
+                
+                assertEquals(10, tokenHa.getQueueSize());
+                assertTrue(tokenHa.isFilled());
+                
+                // Now try to add an 11th token - it should remove the oldest and add the new one
+                boolean result = tokenHa.addIfAvailable("token10");
+                assertTrue(result); // Should succeed by removing oldest
+                assertEquals(10, tokenHa.getQueueSize()); // Size should remain 10
+                
+                // Check that the newest token is now in the queue
+                String json = tokenHa.toJson();
+                assertTrue(json.contains("token10"));
+                
+            } catch (Exception e) {
+                fail("Reflection failed: " + e.getMessage());
+            }
+        }
+    }
+    
 }
