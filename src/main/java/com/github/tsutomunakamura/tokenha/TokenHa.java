@@ -59,6 +59,7 @@ public class TokenHa {
                 break;
             }
 
+            // Get the oldest element
             TokenElement element = fifoQueue.peek();
             if (element != null && (currentTime - element.getTimeMillis()) / 1000 > DEFAUILT_EXPIREATION_TIME_SECONCDS) {
                 expiredTokens.add(fifoQueue.poll());
