@@ -70,7 +70,7 @@ public class EvictionThread {
         if (executorService == null || executorService.isShutdown()) {
             executorService = Executors.newSingleThreadScheduledExecutor();
             executorService.scheduleAtFixedRate(
-                this::evictionTask,
+                this::evictTokens,
                 EVICTION_INTERVAL_SECONDS,
                 EVICTION_INTERVAL_SECONDS,
                 TimeUnit.SECONDS
@@ -93,7 +93,11 @@ public class EvictionThread {
         }
     }
     
-    private void evictionTask() {
+    private String getCurrentTimeString() {
+        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    private void evictTokens() {
         // Clean up dead references first
         cleanupDeadReferences();
         
@@ -102,47 +106,76 @@ public class EvictionThread {
             stop();
             return;
         }
-        
-        // Evict expired tokens from each TokenHa instance
-        System.out.println("Eviction task running at " + getCurrentTimeString() + 
-                          " - Managing " + registeredInstances.size() + " TokenHa instances");
+
+        evictTokensFromEachTokenHa();
+    }
+
+    public void evictTokensFromEachTokenHa() {
+        System.out.println("Eviction task running at " + getCurrentTimeString() + " - Managing " + getActiveInstanceCount() + " TokenHa instances");
         
         int totalTokensBefore = 0;
         int totalTokensAfter = 0;
         int totalEvicted = 0;
-        
+
         for (WeakReference<TokenHa> ref : registeredInstances) {
-            TokenHa tokenHa = ref.get();
-            
-            // WeakReference can become null at any time due to GC
-            if (tokenHa == null) {
-                continue;
-            }
-            
-            int queueSizeBefore = tokenHa.getQueueSize();
-            totalTokensBefore += queueSizeBefore;
-            
-            // Perform actual eviction
+            EvictedCounter counter = evictTokensFromTokenHa(ref.get());
+
+            totalTokensBefore += counter.getSizeBefore();
+            totalTokensAfter += counter.getSizeAfter();
+            totalEvicted += counter.getSizeEvicted();
+
+            System.out.println("  TokenHa instance: " + counter.getSizeBefore() + " -> "
+                + counter.getSizeAfter() + " (evicted " + counter.getSizeEvicted() + " expired tokens)");
+        }
+
+        System.out.println("  Total: " + totalTokensBefore + " -> " + totalTokensAfter + " tokens (evicted " + totalEvicted + " expired)");
+    }
+
+    public EvictedCounter evictTokensFromTokenHa(TokenHa tokenHa) {
+        EvictedCounter counter = new EvictedCounter();
+
+        if (tokenHa != null) {
+            int sizeBefore = tokenHa.getQueueSize();
             List<TokenElement> evictedTokens = tokenHa.evictExpiredTokens();
-            int evictedCount = (evictedTokens != null) ? evictedTokens.size() : 0;
-            totalEvicted += evictedCount;
+            int sizeAfter = tokenHa.getQueueSize();
             
-            int queueSizeAfter = tokenHa.getQueueSize();
-            totalTokensAfter += queueSizeAfter;
-            
-            if (evictedCount > 0) {
-                System.out.println("  TokenHa instance: " + queueSizeBefore + " -> " + queueSizeAfter + 
-                                 " (evicted " + evictedCount + " expired tokens)");
-            } else {
-                System.out.println("  TokenHa instance: " + queueSizeBefore + " tokens (no expired tokens)");
-            }
+            counter.setSizeBefore(sizeBefore);
+            counter.setSizeAfter(sizeAfter);
+            counter.setSizeEvicted(evictedTokens.size());
+        }
+
+        return counter;
+    }
+
+    private static class EvictedCounter {
+        private int sizeBefore;
+        private int sizeAfter;
+        private int sizeEvicted;
+        
+        // Getters
+        public int getSizeBefore() {
+            return sizeBefore;
         }
         
-        System.out.println("  Total: " + totalTokensBefore + " -> " + totalTokensAfter + 
-                          " tokens (evicted " + totalEvicted + " expired)");
-    }
-    
-    private String getCurrentTimeString() {
-        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        public int getSizeAfter() {
+            return sizeAfter;
+        }
+        
+        public int getSizeEvicted() {
+            return sizeEvicted;
+        }
+        
+        // Setters
+        public void setSizeBefore(int sizeBefore) {
+            this.sizeBefore = sizeBefore;
+        }
+        
+        public void setSizeAfter(int sizeAfter) {
+            this.sizeAfter = sizeAfter;
+        }
+        
+        public void setSizeEvicted(int sizeEvicted) {
+            this.sizeEvicted = sizeEvicted;
+        }
     }
 }
