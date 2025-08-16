@@ -92,4 +92,25 @@ public class TokenHa implements AutoCloseable {
 
         return expiredTokens.size() > 0 ? expiredTokens : null;
     }
+    
+    /**
+     * Serialize TokenHa to simple JSON containing only the tokens.
+     * @return JSON string representation of tokens
+     */
+    public String toJson() {
+        StringBuilder json = new StringBuilder();
+        json.append("{\"tokens\":[");
+        
+        boolean first = true;
+        for (TokenElement element : fifoQueue) {
+            if (!first) {
+                json.append(",");
+            }
+            json.append(element.toJson());
+            first = false;
+        }
+        
+        json.append("]}");
+        return json.toString();
+    }
 }

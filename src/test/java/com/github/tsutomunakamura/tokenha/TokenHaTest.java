@@ -13,7 +13,7 @@ import java.util.Iterator;
 /**
  * Test class for TokenUtil.
  */
-public class TokenUtilTest {
+public class TokenHaTest {
     @Test
     public void testTest() {
         Deque<TokenElement> fifoQueue = new ArrayDeque<>();
