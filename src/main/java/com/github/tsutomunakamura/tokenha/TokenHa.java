@@ -19,7 +19,14 @@ public class TokenHa {
     private int maxTokens = 10; // Maximum number of tokens to keep
     private long coolTimeToAddSeconds = 1000; // Time in seconds to wait before adding a new token
 
-    public void add(String token) {
+    public synchronized void addIfAvailable(String token) {
+        if (!availableToAdd()) {
+            return;
+        }
+        add(token);
+    }
+
+    private synchronized void add(String token) {
         fifoQueue.add(new TokenElement(token, System.currentTimeMillis()));
     }
 
