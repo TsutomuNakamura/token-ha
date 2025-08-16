@@ -18,6 +18,9 @@ public class TokenHa {
     private int numberOfLastTokens = 1; // Number of last tokens to keep
     private int maxTokens = 10; // Maximum number of tokens to keep
     private long coolTimeToAddSeconds = 1000; // Time in seconds to wait before adding a new token
+    
+    // Eviction thread (optional - can be managed externally)
+    private EvictionThread evictionThread;
 
     public synchronized void addIfAvailable(String token) {
         if (!availableToAdd()) {
@@ -36,6 +39,24 @@ public class TokenHa {
 
     public Iterator<TokenElement> getDescIterator() {
         return fifoQueue.descendingIterator();
+    }
+
+    public int getQueueSize() {
+        return fifoQueue.size();
+    }
+
+    // Optional convenience methods for eviction thread management
+    public void startEvictionThread() {
+        if (evictionThread == null) {
+            evictionThread = new EvictionThread(this);
+        }
+        evictionThread.start();
+    }
+
+    public void stopEvictionThread() {
+        if (evictionThread != null) {
+            evictionThread.stop();
+        }
     }
 
     public boolean availableToAdd() {
