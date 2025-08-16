@@ -5,6 +5,10 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.io.IOException;
+import java.io.FileWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
@@ -18,6 +22,9 @@ public class TokenHa implements AutoCloseable {
     private int numberOfLastTokens = 1; // Number of last tokens to keep
     private int maxTokens = 10; // Maximum number of tokens to keep
     private long coolTimeToAddSeconds = 1000; // Time in seconds to wait before adding a new token
+    
+    // File path for persisting tokens
+    private String persistenceFilePath = "tokenha-data.json"; // Default file path
     
     // Constructor registers this instance with singleton eviction thread
     public TokenHa() {
@@ -33,6 +40,7 @@ public class TokenHa implements AutoCloseable {
 
     private synchronized void add(String token) {
         fifoQueue.add(new TokenElement(token, System.currentTimeMillis()));
+        saveToFile();
     }
 
     public TokenElement newestToken() {
@@ -112,5 +120,51 @@ public class TokenHa implements AutoCloseable {
         
         json.append("]}");
         return json.toString();
+    }
+    
+    /**
+     * Save the current tokens to a file for persistence.
+     */
+    private void saveToFile() {
+        try (FileWriter writer = new FileWriter(persistenceFilePath)) {
+            writer.write(toJson());
+            writer.flush();
+        } catch (IOException e) {
+            System.err.println("Failed to save tokens to file: " + persistenceFilePath + 
+                             ". Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Load tokens from file if it exists.
+     */
+    public void loadFromFile() {
+        try {
+            if (Files.exists(Paths.get(persistenceFilePath))) {
+                String content = new String(Files.readAllBytes(Paths.get(persistenceFilePath)));
+                System.out.println("Loaded tokens from file: " + persistenceFilePath);
+                System.out.println("Content: " + content);
+                // For now, just log the content. Deserialization can be implemented later.
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to load tokens from file: " + persistenceFilePath + 
+                             ". Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Set the file path for persistence.
+     * @param filePath the file path to use for saving/loading tokens
+     */
+    public void setPersistenceFilePath(String filePath) {
+        this.persistenceFilePath = filePath;
+    }
+    
+    /**
+     * Get the current persistence file path.
+     * @return the file path used for saving/loading tokens
+     */
+    public String getPersistenceFilePath() {
+        return persistenceFilePath;
     }
 }
