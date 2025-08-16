@@ -11,7 +11,7 @@ import com.github.tsutomunakamura.tokenha.element.TokenElement;
 /**
  * A simple token handling utility class.
  */
-public class TokenHa {
+public class TokenHa implements AutoCloseable {
 
     Deque<TokenElement> fifoQueue = new ArrayDeque<>();
     private static final int DEFAUILT_EXPIREATION_TIME_SECONCDS = 60; // Expiration time in seconds
