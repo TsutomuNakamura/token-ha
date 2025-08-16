@@ -8,7 +8,6 @@ import java.util.concurrent.TimeUnit;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.lang.ref.WeakReference;
-import java.util.Iterator;
 
 /**
  * A singleton thread class for handling token eviction tasks across all TokenHa instances.
@@ -76,6 +75,13 @@ public class EvictionThread {
             System.out.println("Singleton eviction thread started at " + getCurrentTimeString());
         }
     }
+
+    public synchronized void stopIfInstancesEmpty() {
+        // Check if there are no active instances and stop the thread
+        if (getActiveInstanceCount() == 0) {
+            stop();
+        }
+    }
     
     private synchronized void stop() {
         if (executorService != null && !executorService.isShutdown()) {
@@ -87,31 +93,7 @@ public class EvictionThread {
     private void evictionTask() {
         // Clean up dead references first
         cleanupDeadReferences();
-        
-        // Currently just outputs a message and current time for testing
-        int activeInstances = registeredInstances.size();
-        System.out.println("Eviction task running at " + getCurrentTimeString() + 
-                          " - Managing " + activeInstances + " TokenHa instances");
-        
-        int totalTokens = 0;
-        Iterator<WeakReference<TokenHa>> iterator = registeredInstances.iterator();
-        while (iterator.hasNext()) {
-            WeakReference<TokenHa> ref = iterator.next();
-            TokenHa tokenHa = ref.get();
-            
-            if (tokenHa == null) {
-                // Instance was garbage collected, remove the dead reference
-                iterator.remove();
-                continue;
-            }
-            
-            int queueSize = tokenHa.getQueueSize();
-            totalTokens += queueSize;
-            System.out.println("  TokenHa instance queue size: " + queueSize);
-        }
-        
-        System.out.println("  Total tokens across all instances: " + totalTokens);
-        
+
         // Stop thread if no active instances remain
         if (registeredInstances.isEmpty()) {
             stop();
