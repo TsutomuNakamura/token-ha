@@ -32,17 +32,10 @@ public class TokenHa {
     }
 
     public boolean availableToAdd() {
-        if(isOverMaxTokens()) {
-            return false;
-        }
-        if(!passedCoolTimeToAdd()) {
-            return false;
-        }
-
-        return true;
+        return !isFilled() && passedCoolTimeToAdd();
     }
 
-    public boolean isOverMaxTokens() {
+    public boolean isFilled() {
         return fifoQueue.size() >= maxTokens;
     }
 
