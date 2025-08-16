@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
+import com.google.gson.Gson;
 
 /**
  * A simple token handling utility class.
@@ -22,6 +23,9 @@ public class TokenHa implements AutoCloseable {
     // File path for persisting tokens
     private String persistenceFilePath = "tokenha-data.json"; // Default file path
     private FilePersistence filePersistence; // File persistence handler
+    
+    // Gson for JSON serialization/deserialization
+    private static final Gson gson = new Gson();
     
     // Constructor registers this instance with singleton eviction thread
     public TokenHa() {
@@ -109,13 +113,36 @@ public class TokenHa implements AutoCloseable {
     }
     
     /**
-     * Load tokens from file if it exists.
+     * Load tokens from file if it exists and deserialize using Gson.
      */
     public void loadFromFile() {
         String content = filePersistence.load();
         if (content != null) {
-            // For now, just log the content. Deserialization can be implemented later.
             System.out.println("Loaded content: " + content);
+            
+            try {
+                TokenData data = gson.fromJson(content, TokenData.class);
+                
+                if (data != null && data.getTokens() != null && !data.getTokens().isEmpty()) {
+                    // Clear current queue
+                    fifoQueue.clear();
+                    
+                    // If tokens exceed maxTokens, keep only the newest ones
+                    List<TokenElement> tokens = data.getTokens();
+                    if (tokens.size() > maxTokens) {
+                        tokens = tokens.subList(tokens.size() - maxTokens, tokens.size());
+                    }
+                    
+                    // Add all tokens to queue in proper order (oldest to newest)
+                    for (TokenElement token : tokens) {
+                        fifoQueue.add(token);
+                    }
+                    
+                    System.out.println("Loaded " + fifoQueue.size() + " tokens from file");
+                }
+            } catch (Exception e) {
+                System.err.println("Error parsing JSON with Gson: " + e.getMessage());
+            }
         }
     }
     
@@ -153,23 +180,17 @@ public class TokenHa implements AutoCloseable {
     }
 
     /**
-     * Serialize TokenHa to simple JSON containing only the tokens.
+     * Serialize TokenHa to JSON using Gson.
      * @return JSON string representation of tokens
      */
     public String toJson() {
-        StringBuilder json = new StringBuilder();
-        json.append("{\"tokens\":[");
-        
-        boolean first = true;
-        for (TokenElement element : fifoQueue) {
-            if (!first) {
-                json.append(",");
-            }
-            json.append(element.toJson());
-            first = false;
+        try {
+            List<TokenElement> tokenList = new ArrayList<>(fifoQueue);
+            TokenData data = new TokenData(tokenList);
+            return gson.toJson(data);
+        } catch (Exception e) {
+            System.err.println("Error serializing to JSON: " + e.getMessage());
+            return "{\"tokens\":[]}";
         }
-        
-        json.append("]}");
-        return json.toString();
     }
 }

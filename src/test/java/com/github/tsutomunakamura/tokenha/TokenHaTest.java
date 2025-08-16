@@ -186,4 +186,77 @@ public class TokenHaTest {
         }
     }
     
+    @Test
+    public void testGsonSerialization() {
+        try (TokenHa tokenHa = new TokenHa()) {
+            // Add a token with special characters to test Gson handling
+            tokenHa.addIfAvailable("user\"with\"quotes");
+            
+            String json = tokenHa.toJson();
+            System.out.println("Gson JSON output: " + json);
+            
+            // Should be properly escaped by Gson
+            assertTrue(json.contains("\\\""));
+            assertTrue(json.contains("user\\\"with\\\"quotes"));
+            
+            // Should be valid JSON structure
+            assertTrue(json.startsWith("{\"tokens\":["));
+            assertTrue(json.endsWith("]}"));
+        }
+    }
+    
+    @Test
+    public void testGsonDeserialization() {
+        String testFilePath = "test-gson-deserialize.json";
+        String originalJson = null;
+        
+        try {
+            // First instance: create and save data
+            try (TokenHa tokenHa = new TokenHa()) {
+                // Set test file path
+                tokenHa.setPersistenceFilePath(testFilePath);
+                
+                // Add some tokens and save
+                tokenHa.addIfAvailable("token1");
+                Thread.sleep(1100); // Wait for cooldown
+                tokenHa.addIfAvailable("token2");
+                
+                assertEquals(2, tokenHa.getQueueSize());
+                originalJson = tokenHa.toJson();
+                System.out.println("Original JSON: " + originalJson);
+                
+            } // First instance is closed here, releasing the file lock
+            
+            // Second instance: load from the file
+            try (TokenHa tokenHa2 = new TokenHa()) {
+                tokenHa2.setPersistenceFilePath(testFilePath);
+                assertEquals(0, tokenHa2.getQueueSize()); // Should start empty
+                
+                // Load from file
+                tokenHa2.loadFromFile();
+                
+                // Should have loaded the same tokens
+                assertEquals(2, tokenHa2.getQueueSize());
+                String loadedJson = tokenHa2.toJson();
+                System.out.println("Loaded JSON: " + loadedJson);
+                
+                // JSON should match (Gson produces consistent output)
+                assertEquals(originalJson, loadedJson);
+                
+                // Check specific token values
+                assertTrue(loadedJson.contains("token1"));
+                assertTrue(loadedJson.contains("token2"));
+            }
+            
+        } catch (Exception e) {
+            fail("Test failed: " + e.getMessage());
+        } finally {
+            // Cleanup test file
+            try (TokenHa cleanup = new TokenHa()) {
+                cleanup.setPersistenceFilePath(testFilePath);
+                cleanup.deletePersistenceFile();
+            }
+        }
+    }
+    
 }
