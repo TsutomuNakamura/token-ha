@@ -19,8 +19,10 @@ public class TokenHa {
     private int maxTokens = 10; // Maximum number of tokens to keep
     private long coolTimeToAddSeconds = 1000; // Time in seconds to wait before adding a new token
     
-    // Eviction thread (optional - can be managed externally)
-    private EvictionThread evictionThread;
+    // Constructor registers this instance with singleton eviction thread
+    public TokenHa() {
+        EvictionThread.getInstance().register(this);
+    }
 
     public synchronized void addIfAvailable(String token) {
         if (!availableToAdd()) {
@@ -45,18 +47,9 @@ public class TokenHa {
         return fifoQueue.size();
     }
 
-    // Optional convenience methods for eviction thread management
-    public void startEvictionThread() {
-        if (evictionThread == null) {
-            evictionThread = new EvictionThread(this);
-        }
-        evictionThread.start();
-    }
-
-    public void stopEvictionThread() {
-        if (evictionThread != null) {
-            evictionThread.stop();
-        }
+    // Cleanup method to unregister from singleton eviction thread
+    public void close() {
+        EvictionThread.getInstance().unregister(this);
     }
 
     public boolean availableToAdd() {
