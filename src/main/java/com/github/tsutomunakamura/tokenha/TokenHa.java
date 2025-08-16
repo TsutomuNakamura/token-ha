@@ -5,10 +5,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
-import java.io.IOException;
-import java.io.FileWriter;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
@@ -25,10 +21,12 @@ public class TokenHa implements AutoCloseable {
     
     // File path for persisting tokens
     private String persistenceFilePath = "tokenha-data.json"; // Default file path
+    private FilePersistence filePersistence; // File persistence handler
     
     // Constructor registers this instance with singleton eviction thread
     public TokenHa() {
         EvictionThread.getInstance().register(this);
+        filePersistence = new FilePersistence(persistenceFilePath);
     }
 
     public synchronized void addIfAvailable(String token) {
@@ -126,29 +124,17 @@ public class TokenHa implements AutoCloseable {
      * Save the current tokens to a file for persistence.
      */
     private void saveToFile() {
-        try (FileWriter writer = new FileWriter(persistenceFilePath)) {
-            writer.write(toJson());
-            writer.flush();
-        } catch (IOException e) {
-            System.err.println("Failed to save tokens to file: " + persistenceFilePath + 
-                             ". Error: " + e.getMessage());
-        }
+        filePersistence.save(toJson());
     }
     
     /**
      * Load tokens from file if it exists.
      */
     public void loadFromFile() {
-        try {
-            if (Files.exists(Paths.get(persistenceFilePath))) {
-                String content = new String(Files.readAllBytes(Paths.get(persistenceFilePath)));
-                System.out.println("Loaded tokens from file: " + persistenceFilePath);
-                System.out.println("Content: " + content);
-                // For now, just log the content. Deserialization can be implemented later.
-            }
-        } catch (IOException e) {
-            System.err.println("Failed to load tokens from file: " + persistenceFilePath + 
-                             ". Error: " + e.getMessage());
+        String content = filePersistence.load();
+        if (content != null) {
+            // For now, just log the content. Deserialization can be implemented later.
+            System.out.println("Loaded content: " + content);
         }
     }
     
@@ -158,6 +144,7 @@ public class TokenHa implements AutoCloseable {
      */
     public void setPersistenceFilePath(String filePath) {
         this.persistenceFilePath = filePath;
+        filePersistence.setFilePath(filePath);
     }
     
     /**
@@ -166,5 +153,21 @@ public class TokenHa implements AutoCloseable {
      */
     public String getPersistenceFilePath() {
         return persistenceFilePath;
+    }
+    
+    /**
+     * Check if the persistence file exists.
+     * @return true if the file exists, false otherwise
+     */
+    public boolean persistenceFileExists() {
+        return filePersistence.fileExists();
+    }
+    
+    /**
+     * Delete the persistence file.
+     * @return true if file was deleted or didn't exist, false if deletion failed
+     */
+    public boolean deletePersistenceFile() {
+        return filePersistence.deleteFile();
     }
 }
