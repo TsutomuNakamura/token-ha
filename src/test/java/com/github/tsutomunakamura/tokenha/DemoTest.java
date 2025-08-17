@@ -4,13 +4,27 @@ import com.github.tsutomunakamura.tokenha.element.TokenElement;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Iterator;
 
 /**
  * Comprehensive demonstration of the TokenHa library features as test cases.
- * These tests serve as both functional tests and usage examples.
+ * These tests serve as usage examples and are disabled by default.
+ * 
+ * To run these demo tests manually:
+ * - In IDE: Remove @Disabled annotations or run individual test methods
+ * - Maven: mvn test -Dtest=DemoTest#testMethodName 
+ * - Or enable all: temporarily remove @Disabled annotations
+ * 
+ * These tests demonstrate:
+ * - Basic token operations and cooldown handling
+ * - Queue state management and navigation
+ * - JSON serialization/deserialization with Gson
+ * - File persistence with exclusive locking
+ * - Overflow behavior and FIFO queue management
+ * - Complete workflow integration
  */
 public class DemoTest {
     
@@ -33,6 +47,7 @@ public class DemoTest {
     }
     
     @Test
+    @Disabled("Demo test - run manually to see library usage examples")
     public void testBasicTokenOperations() throws InterruptedException {
         System.out.println("=== Test: Basic Token Operations ===");
         
@@ -60,6 +75,7 @@ public class DemoTest {
     }
     
     @Test
+    @Disabled("Demo test - run manually to see library usage examples")
     public void testQueueStateAndNavigation() throws InterruptedException {
         System.out.println("=== Test: Queue State and Navigation ===");
         
@@ -97,6 +113,7 @@ public class DemoTest {
     }
     
     @Test
+    @Disabled("Demo test - run manually to see library usage examples")
     public void testCooldownMechanism() throws InterruptedException {
         System.out.println("=== Test: Cooldown Mechanism ===");
         
@@ -118,6 +135,7 @@ public class DemoTest {
     }
     
     @Test
+    @Disabled("Demo test - run manually to see library usage examples")
     public void testJsonSerializationWithGson() throws InterruptedException {
         System.out.println("=== Test: JSON Serialization with Gson ===");
         
@@ -146,6 +164,7 @@ public class DemoTest {
     }
     
     @Test
+    @Disabled("Demo test - run manually to see library usage examples")
     public void testFilePersistenceWithDeserialization() throws InterruptedException {
         System.out.println("=== Test: File Persistence with Gson Deserialization ===");
         
@@ -188,6 +207,7 @@ public class DemoTest {
     }
     
     @Test
+    @Disabled("Demo test - run manually to see library usage examples")
     public void testTokenEviction() throws InterruptedException {
         System.out.println("=== Test: Token Eviction ===");
         
@@ -204,6 +224,7 @@ public class DemoTest {
     }
     
     @Test
+    @Disabled("Demo test - run manually to see library usage examples")
     public void testOverflowBehaviorWithDeserialization() throws InterruptedException {
         System.out.println("=== Test: Overflow Behavior with Deserialization ===");
         
@@ -250,6 +271,7 @@ public class DemoTest {
     }
     
     @Test
+    @Disabled("Demo test - run manually to see library usage examples")
     public void testCompleteWorkflow() throws InterruptedException {
         System.out.println("=== Test: Complete TokenHa Workflow ===");
         
