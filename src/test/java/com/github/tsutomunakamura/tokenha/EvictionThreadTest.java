@@ -327,7 +327,7 @@ public class EvictionThreadTest {
         assertEquals(4, getActiveInstanceCount(), "Count should be 4 after duplicate registration");
     }
 
-    // TODO: Test cases for EvictionThread#unregister(TokenHa tokenHa);
+    // Test cases for EvictionThread#unregister(TokenHa tokenHa);
 
     @Test
     @DisplayName("Test unregister method with single mock TokenHa instance")
