@@ -326,4 +326,278 @@ public class EvictionThreadTest {
         evictionThread.register(mockTokenHa1);
         assertEquals(4, getActiveInstanceCount(), "Count should be 4 after duplicate registration");
     }
+
+    // TODO: Test cases for EvictionThread#unregister(TokenHa tokenHa);
+
+    @Test
+    @DisplayName("Test unregister method with single mock TokenHa instance")
+    public void testUnregisterSingleMockInstance() throws Exception {
+        System.out.println("🧪 TEST: Unregister method with single mock TokenHa instance");
+        
+        // First register an instance
+        evictionThread.register(mockTokenHa1);
+        assertEquals(1, getActiveInstanceCount(), "Should have 1 instance after registration");
+        assertTrue(isEvictionThreadRunning(), "Thread should be running after registration");
+        
+        // Now unregister it
+        evictionThread.unregister(mockTokenHa1);
+        assertEquals(0, getActiveInstanceCount(), "Should have 0 instances after unregistration");
+        assertFalse(isEvictionThreadRunning(), "Thread should stop when no instances remain");
+    }
+    
+    @Test
+    @DisplayName("Test unregister method with multiple mock TokenHa instances")
+    public void testUnregisterMultipleMockInstances() throws Exception {
+        System.out.println("🧪 TEST: Unregister method with multiple mock TokenHa instances");
+        
+        // Register multiple instances
+        evictionThread.register(mockTokenHa1);
+        evictionThread.register(mockTokenHa2);
+        evictionThread.register(mockTokenHa3);
+        assertEquals(3, getActiveInstanceCount(), "Should have 3 instances after registration");
+        assertTrue(isEvictionThreadRunning(), "Thread should be running");
+        
+        // Unregister first instance
+        evictionThread.unregister(mockTokenHa1);
+        assertEquals(2, getActiveInstanceCount(), "Should have 2 instances after first unregistration");
+        assertTrue(isEvictionThreadRunning(), "Thread should still be running");
+        
+        // Unregister second instance
+        evictionThread.unregister(mockTokenHa2);
+        assertEquals(1, getActiveInstanceCount(), "Should have 1 instance after second unregistration");
+        assertTrue(isEvictionThreadRunning(), "Thread should still be running");
+        
+        // Unregister last instance
+        evictionThread.unregister(mockTokenHa3);
+        assertEquals(0, getActiveInstanceCount(), "Should have 0 instances after final unregistration");
+        assertFalse(isEvictionThreadRunning(), "Thread should stop when no instances remain");
+    }
+    
+    @Test
+    @DisplayName("Test unregister method with non-existent TokenHa instance")
+    public void testUnregisterNonExistentInstance() throws Exception {
+        System.out.println("🧪 TEST: Unregister method with non-existent TokenHa instance");
+        
+        // Register one instance
+        evictionThread.register(mockTokenHa1);
+        int countAfterRegister = getActiveInstanceCount();
+        
+        // Try to unregister a different instance that was never registered
+        evictionThread.unregister(mockTokenHa2);
+        
+        // Count should remain the same
+        assertEquals(countAfterRegister, getActiveInstanceCount(), 
+            "Count should not change when unregistering non-existent instance");
+        assertTrue(isEvictionThreadRunning(), "Thread should still be running");
+    }
+    
+    @Test
+    @DisplayName("Test unregister method with duplicate instances")
+    public void testUnregisterDuplicateInstances() throws Exception {
+        System.out.println("🧪 TEST: Unregister method with duplicate instances");
+        
+        // Register the same instance multiple times
+        evictionThread.register(mockTokenHa1);
+        evictionThread.register(mockTokenHa1);
+        evictionThread.register(mockTokenHa1);
+        assertEquals(3, getActiveInstanceCount(), "Should have 3 instances after duplicate registrations");
+        
+        // Unregister once - should remove ALL references to this instance
+        evictionThread.unregister(mockTokenHa1);
+        assertEquals(0, getActiveInstanceCount(), 
+            "Should remove all references to the instance in one unregister call");
+        assertFalse(isEvictionThreadRunning(), "Thread should stop when no instances remain");
+    }
+    
+    @Test
+    @DisplayName("Test unregister method with null TokenHa instance")
+    public void testUnregisterNullInstance() throws Exception {
+        System.out.println("🧪 TEST: Unregister method with null TokenHa instance");
+        
+        // Register some instances first
+        evictionThread.register(mockTokenHa1);
+        evictionThread.register(mockTokenHa2);
+        int countAfterRegister = getActiveInstanceCount();
+        
+        // Unregister null - should handle gracefully and might clean up dead references
+        evictionThread.unregister(null);
+        
+        // Count should be less than or equal to original (due to dead reference cleanup)
+        int countAfterUnregister = getActiveInstanceCount();
+        assertTrue(countAfterUnregister <= countAfterRegister, 
+            "Count should be less than or equal to original after null unregister");
+        assertTrue(isEvictionThreadRunning(), "Thread should still be running with active instances");
+    }
+    
+    @Test
+    @DisplayName("Test unregister method stops thread only when no instances remain")
+    public void testUnregisterStopsThreadWhenEmpty() throws Exception {
+        System.out.println("🧪 TEST: Unregister method stops thread only when no instances remain");
+        
+        // Register multiple instances
+        evictionThread.register(mockTokenHa1);
+        evictionThread.register(mockTokenHa2);
+        assertTrue(isEvictionThreadRunning(), "Thread should be running with instances");
+        
+        // Unregister one instance - thread should keep running
+        evictionThread.unregister(mockTokenHa1);
+        assertEquals(1, getActiveInstanceCount(), "Should have 1 instance remaining");
+        assertTrue(isEvictionThreadRunning(), "Thread should still be running with remaining instance");
+        
+        // Unregister last instance - thread should stop
+        evictionThread.unregister(mockTokenHa2);
+        assertEquals(0, getActiveInstanceCount(), "Should have 0 instances remaining");
+        assertFalse(isEvictionThreadRunning(), "Thread should stop when no instances remain");
+    }
+    
+    @Test
+    @DisplayName("Test unregister method thread safety")
+    public void testUnregisterThreadSafety() throws Exception {
+        System.out.println("🧪 TEST: Unregister method thread safety");
+        
+        final int numThreads = 5;
+        final int instancesPerThread = 3;
+        
+        // First register many instances
+        TokenHa[] mockTokens = new TokenHa[numThreads * instancesPerThread];
+        for (int i = 0; i < mockTokens.length; i++) {
+            mockTokens[i] = mock(TokenHa.class, "ThreadSafetyMock-" + i);
+            evictionThread.register(mockTokens[i]);
+        }
+        
+        int initialCount = getActiveInstanceCount();
+        assertEquals(numThreads * instancesPerThread, initialCount, 
+            "Should have registered all instances");
+        
+        // Now unregister them concurrently
+        Thread[] threads = new Thread[numThreads];
+        for (int i = 0; i < numThreads; i++) {
+            final int threadIndex = i;
+            threads[i] = new Thread(() -> {
+                for (int j = 0; j < instancesPerThread; j++) {
+                    int tokenIndex = threadIndex * instancesPerThread + j;
+                    evictionThread.unregister(mockTokens[tokenIndex]);
+                    // Small delay to increase chance of thread interleaving
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            });
+        }
+        
+        // Start all threads
+        for (Thread thread : threads) {
+            thread.start();
+        }
+        
+        // Wait for all threads to complete
+        for (Thread thread : threads) {
+            thread.join();
+        }
+        
+        // Verify all instances were unregistered
+        assertEquals(0, getActiveInstanceCount(), "All instances should be unregistered");
+        assertFalse(isEvictionThreadRunning(), "Thread should stop when no instances remain");
+    }
+    
+    @Test
+    @DisplayName("Test unregister method cleanup of dead references")
+    public void testUnregisterCleansUpDeadReferences() throws Exception {
+        System.out.println("🧪 TEST: Unregister method cleanup of dead references");
+        
+        // Register some instances, including one that will become dead
+        evictionThread.register(mockTokenHa1);
+        TokenHa tempToken = mock(TokenHa.class);
+        evictionThread.register(tempToken);
+        evictionThread.register(mockTokenHa2);
+        
+        int countAfterRegistrations = getActiveInstanceCount();
+        assertEquals(3, countAfterRegistrations, "Should have 3 instances registered");
+        
+        // Make tempToken eligible for garbage collection
+        tempToken = null;
+        System.gc();
+        Thread.sleep(100); // Give GC time to work
+        
+        // Unregister one of the remaining instances
+        // This should also clean up the dead reference
+        evictionThread.unregister(mockTokenHa1);
+        
+        // The count should be at least 1 (mockTokenHa2) and at most 2 (if GC didn't run yet)
+        // We can't guarantee GC timing, so we accept either scenario
+        int finalCount = getActiveInstanceCount();
+        assertTrue(finalCount >= 1 && finalCount <= 2, 
+            "Should have 1-2 instances remaining (depending on GC timing), but got " + finalCount);
+        assertTrue(isEvictionThreadRunning(), "Thread should still be running if instances remain");
+    }
+    
+    @Test
+    @DisplayName("Test unregister method synchronization behavior")
+    public void testUnregisterSynchronization() throws Exception {
+        System.out.println("🧪 TEST: Unregister method synchronization behavior");
+        
+        // Register multiple instances
+        final int numInstances = 10;
+        TokenHa[] mockTokens = new TokenHa[numInstances];
+        for (int i = 0; i < numInstances; i++) {
+            mockTokens[i] = mock(TokenHa.class, "SyncUnregisterMock-" + i);
+            evictionThread.register(mockTokens[i]);
+        }
+        
+        assertEquals(numInstances, getActiveInstanceCount(), "Should have registered all instances");
+        
+        // Create threads that all unregister at the same time
+        Thread[] threads = new Thread[numInstances];
+        for (int i = 0; i < numInstances; i++) {
+            final int index = i;
+            threads[i] = new Thread(() -> {
+                evictionThread.unregister(mockTokens[index]);
+            });
+        }
+        
+        // Start all threads simultaneously
+        for (Thread thread : threads) {
+            thread.start();
+        }
+        
+        // Wait for all to complete
+        for (Thread thread : threads) {
+            thread.join();
+        }
+        
+        // Verify all unregistrations were successful
+        assertEquals(0, getActiveInstanceCount(), "All instances should be unregistered");
+        assertFalse(isEvictionThreadRunning(), "Thread should stop when no instances remain");
+    }
+    
+    @Test
+    @DisplayName("Test unregister method mixed with register operations")
+    public void testUnregisterMixedWithRegister() throws Exception {
+        System.out.println("🧪 TEST: Unregister method mixed with register operations");
+        
+        // Start with some registered instances
+        evictionThread.register(mockTokenHa1);
+        evictionThread.register(mockTokenHa2);
+        assertEquals(2, getActiveInstanceCount(), "Should start with 2 instances");
+        
+        // Unregister one
+        evictionThread.unregister(mockTokenHa1);
+        assertEquals(1, getActiveInstanceCount(), "Should have 1 instance after unregister");
+        assertTrue(isEvictionThreadRunning(), "Thread should still be running");
+        
+        // Register another
+        evictionThread.register(mockTokenHa3);
+        assertEquals(2, getActiveInstanceCount(), "Should have 2 instances after new registration");
+        assertTrue(isEvictionThreadRunning(), "Thread should still be running");
+        
+        // Unregister all remaining
+        evictionThread.unregister(mockTokenHa2);
+        evictionThread.unregister(mockTokenHa3);
+        assertEquals(0, getActiveInstanceCount(), "Should have 0 instances after unregistering all");
+        assertFalse(isEvictionThreadRunning(), "Thread should stop when no instances remain");
+    }
+
+    
 }
