@@ -155,21 +155,13 @@ public class EvictionThread {
         EvictedCounter counter = new EvictedCounter();
 
         if (tokenHa != null) {
-            try {
-                int sizeBefore = tokenHa.getQueueSize();
-                List<TokenElement> evictedTokens = tokenHa.evictExpiredTokens();
-                int sizeAfter = tokenHa.getQueueSize();
-                
-                counter.setSizeBefore(sizeBefore);
-                counter.setSizeAfter(sizeAfter);
-                counter.setSizeEvicted(evictedTokens != null ? evictedTokens.size() : 0);
-            } catch (Exception e) {
-                // Handle case where TokenHa might be in an inconsistent state during cleanup
-                System.err.println("Error during token eviction: " + e.getMessage());
-                counter.setSizeBefore(0);
-                counter.setSizeAfter(0);
-                counter.setSizeEvicted(0);
-            }
+            int sizeBefore = tokenHa.getQueueSize();
+            List<TokenElement> evictedTokens = tokenHa.evictExpiredTokens();
+            int sizeAfter = tokenHa.getQueueSize();
+            
+            counter.setSizeBefore(sizeBefore);
+            counter.setSizeAfter(sizeAfter);
+            counter.setSizeEvicted(evictedTokens != null ? evictedTokens.size() : 0);
         }
 
         return counter;
