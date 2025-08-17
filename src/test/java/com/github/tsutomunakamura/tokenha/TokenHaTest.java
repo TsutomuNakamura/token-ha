@@ -1,6 +1,7 @@
 package com.github.tsutomunakamura.tokenha;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
@@ -15,6 +16,7 @@ import java.util.Iterator;
  */
 public class TokenHaTest {
     @Test
+    @DisplayName("Test JSON serialization when token queue is empty")
     public void testToJsonWithEmptyQueue() {
         try (TokenHa tokenHa = new TokenHa()) {
             String json = tokenHa.toJson();
@@ -27,6 +29,7 @@ public class TokenHaTest {
     }
 
     @Test
+    @DisplayName("Test JSON serialization with exactly one token")
     public void testToJsonWithSingleToken() {
         try (TokenHa tokenHa = new TokenHa()) {
             tokenHa.addIfAvailable("user123");
@@ -45,6 +48,7 @@ public class TokenHaTest {
     }
 
     @Test
+    @DisplayName("Test JSON serialization with multiple tokens (respecting cooldown)")
     public void testToJsonWithMultipleTokens() {
         try (TokenHa tokenHa = new TokenHa()) {
             // Add first token (should succeed)
@@ -68,6 +72,7 @@ public class TokenHaTest {
     }
 
     @Test
+    @DisplayName("Test JSON escaping of special characters (quotes, etc.)")
     public void testToJsonWithSpecialCharacters() {
         try (TokenHa tokenHa = new TokenHa()) {
             // Test with one token containing special characters
@@ -88,6 +93,7 @@ public class TokenHaTest {
     }
 
     @Test
+    @DisplayName("Test JSON structure validation and pretty-printing")
     public void testToJsonWithFixedTimestamps() {
         try (TokenHa tokenHa = new TokenHa()) {
             // Test the JSON structure with actual timestamps
@@ -112,6 +118,7 @@ public class TokenHaTest {
     }
     
     @Test
+    @DisplayName("Test cooldown mechanism and addIfAvailable return values")
     public void testAddIfAvailableReturnValues() {
         try (TokenHa tokenHa = new TokenHa()) {
             // First token should be added successfully
@@ -136,6 +143,7 @@ public class TokenHaTest {
     }
     
     @Test
+    @DisplayName("Test FIFO queue overflow behavior (max 10 tokens)")
     public void testQueueOverflowBehavior() {
         try (TokenHa tokenHa = new TokenHa()) {
             // Fill the queue to max capacity (10 tokens)
@@ -173,6 +181,7 @@ public class TokenHaTest {
     }
     
     @Test
+    @DisplayName("Test Gson serialization with special characters")
     public void testGsonSerialization() {
         try (TokenHa tokenHa = new TokenHa()) {
             // Add a token with special characters to test Gson handling
@@ -192,6 +201,7 @@ public class TokenHaTest {
     }
     
     @Test
+    @DisplayName("Test Gson deserialization from file persistence")
     public void testGsonDeserialization() {
         String testFilePath = "test-gson-deserialize.json";
         String originalJson = null;
