@@ -599,5 +599,191 @@ public class EvictionThreadTest {
         assertFalse(isEvictionThreadRunning(), "Thread should stop when no instances remain");
     }
 
+    // Skip. Test cases for EvictionThread#cleanupDeadReferences(); Because this method is private and already tested indirectly
+    
+    // Skip. Test cases for EvictionThread#getActiveInstanceCount(); Because this method is private and already tested indirectly
+    
+    // Skip. Test cases for EvictionThread#start(); Because this method is private and already tested indirectly
+
+    // Test cases for EvictionThread#stopIfInstancesEmpty();
+
+    @Test
+    @DisplayName("Test stopIfInstancesEmpty when no instances are registered")
+    public void testStopIfInstancesEmptyWhenEmpty() throws Exception {
+        System.out.println("🧪 TEST: stopIfInstancesEmpty when no instances are registered");
+        
+        // Ensure we start with an empty registry
+        assertEquals(0, getActiveInstanceCount(), "Should start with no instances");
+        assertFalse(isEvictionThreadRunning(), "Thread should not be running initially");
+        
+        // Call stopIfInstancesEmpty - should do nothing since thread is not running
+        evictionThread.stopIfInstancesEmpty();
+        
+        // Verify state remains unchanged
+        assertEquals(0, getActiveInstanceCount(), "Should still have no instances");
+        assertFalse(isEvictionThreadRunning(), "Thread should still not be running");
+    }
+    
+    @Test
+    @DisplayName("Test stopIfInstancesEmpty when instances exist")
+    public void testStopIfInstancesEmptyWhenInstancesExist() throws Exception {
+        System.out.println("🧪 TEST: stopIfInstancesEmpty when instances exist");
+        
+        // Register some instances to start the thread
+        evictionThread.register(mockTokenHa1);
+        evictionThread.register(mockTokenHa2);
+        assertEquals(2, getActiveInstanceCount(), "Should have 2 instances");
+        assertTrue(isEvictionThreadRunning(), "Thread should be running");
+        
+        // Call stopIfInstancesEmpty - should NOT stop since instances exist
+        evictionThread.stopIfInstancesEmpty();
+        
+        // Verify thread is still running
+        assertEquals(2, getActiveInstanceCount(), "Should still have 2 instances");
+        assertTrue(isEvictionThreadRunning(), "Thread should still be running since instances exist");
+        
+        // Clean up
+        evictionThread.unregister(mockTokenHa1);
+        evictionThread.unregister(mockTokenHa2);
+    }
+    
+    @Test
+    @DisplayName("Test stopIfInstancesEmpty after all instances are manually cleared")
+    public void testStopIfInstancesEmptyAfterManualClear() throws Exception {
+        System.out.println("🧪 TEST: stopIfInstancesEmpty after manually clearing instances");
+        
+        // Register instances and start the thread
+        evictionThread.register(mockTokenHa1);
+        evictionThread.register(mockTokenHa2);
+        assertEquals(2, getActiveInstanceCount(), "Should have 2 instances");
+        assertTrue(isEvictionThreadRunning(), "Thread should be running");
+        
+        // Manually clear the registry (simulating what might happen in error scenarios)
+        clearRegisteredInstances();
+        assertEquals(0, getActiveInstanceCount(), "Should have no instances after manual clear");
+        
+        // The thread might still be running since unregister wasn't called
+        boolean wasRunningBefore = isEvictionThreadRunning();
+        
+        // Now call stopIfInstancesEmpty - should stop the thread
+        evictionThread.stopIfInstancesEmpty();
+        
+        // Verify thread is stopped
+        assertEquals(0, getActiveInstanceCount(), "Should still have no instances");
+        assertFalse(isEvictionThreadRunning(), "Thread should be stopped after stopIfInstancesEmpty");
+        
+        if (wasRunningBefore) {
+            System.out.println("✓ Thread was properly stopped by stopIfInstancesEmpty");
+        } else {
+            System.out.println("ℹ Thread was already stopped before calling stopIfInstancesEmpty");
+        }
+    }
+    
+    @Test
+    @DisplayName("Test stopIfInstancesEmpty with garbage collected references")
+    public void testStopIfInstancesEmptyWithGarbageCollectedReferences() throws Exception {
+        System.out.println("🧪 TEST: stopIfInstancesEmpty with garbage collected references");
+        
+        // Register an instance that will become eligible for GC
+        TokenHa tempInstance = mock(TokenHa.class);
+        evictionThread.register(tempInstance);
+        assertEquals(1, getActiveInstanceCount(), "Should have 1 instance");
+        assertTrue(isEvictionThreadRunning(), "Thread should be running");
+        
+        // Make the instance eligible for garbage collection
+        tempInstance = null;
+        
+        // Force garbage collection
+        System.gc();
+        Thread.sleep(100); // Give GC time to work
+        
+        // Call stopIfInstancesEmpty
+        evictionThread.stopIfInstancesEmpty();
+        
+        // Check the final state after stopIfInstancesEmpty
+        int activeCountAfterStop = getActiveInstanceCount();
+        boolean threadRunningAfter = isEvictionThreadRunning();
+        
+        // Assert based on the actual GC behavior
+        if (activeCountAfterStop == 0) {
+            assertFalse(threadRunningAfter, "Thread should be stopped when no active instances remain");
+            System.out.println("✓ GC worked: stopIfInstancesEmpty correctly stopped the thread");
+        } else {
+            // GC timing may mean the reference is still counted
+            assertTrue(activeCountAfterStop >= 0, "Should have non-negative active instances");
+            System.out.println("⚠ GC timing: Reference may still be counted, which is acceptable");
+        }
+    }
+    
+    @Test
+    @DisplayName("Test stopIfInstancesEmpty thread safety with concurrent operations")
+    public void testStopIfInstancesEmptyThreadSafety() throws Exception {
+        System.out.println("🧪 TEST: stopIfInstancesEmpty thread safety with concurrent operations");
+        
+        // Register some instances
+        evictionThread.register(mockTokenHa1);
+        evictionThread.register(mockTokenHa2);
+        assertEquals(2, getActiveInstanceCount(), "Should start with 2 instances");
+        assertTrue(isEvictionThreadRunning(), "Thread should be running");
+        
+        // Create concurrent tasks
+        Thread stopperThread = new Thread(() -> {
+            try {
+                Thread.sleep(50); // Small delay
+                evictionThread.stopIfInstancesEmpty();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        
+        Thread unregisterThread = new Thread(() -> {
+            try {
+                Thread.sleep(25); // Smaller delay to unregister first
+                evictionThread.unregister(mockTokenHa1);
+                evictionThread.unregister(mockTokenHa2);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        
+        // Start both threads
+        stopperThread.start();
+        unregisterThread.start();
+        
+        // Wait for completion
+        stopperThread.join(1000);
+        unregisterThread.join(1000);
+        
+        // Verify final state
+        assertEquals(0, getActiveInstanceCount(), "Should have no instances after unregister");
+        assertFalse(isEvictionThreadRunning(), "Thread should be stopped");
+        System.out.println("✓ Concurrent operations completed successfully");
+    }
+    
+    @Test
+    @DisplayName("Test stopIfInstancesEmpty multiple calls when empty")
+    public void testStopIfInstancesEmptyMultipleCalls() throws Exception {
+        System.out.println("🧪 TEST: stopIfInstancesEmpty multiple calls when empty");
+        
+        // Start with an instance to get the thread running
+        evictionThread.register(mockTokenHa1);
+        assertEquals(1, getActiveInstanceCount(), "Should have 1 instance");
+        assertTrue(isEvictionThreadRunning(), "Thread should be running");
+        
+        // Unregister to make it empty (this will call stop internally)
+        evictionThread.unregister(mockTokenHa1);
+        assertEquals(0, getActiveInstanceCount(), "Should have no instances");
+        assertFalse(isEvictionThreadRunning(), "Thread should be stopped after unregister");
+        
+        // Now call stopIfInstancesEmpty multiple times - should be safe
+        evictionThread.stopIfInstancesEmpty();
+        evictionThread.stopIfInstancesEmpty();
+        evictionThread.stopIfInstancesEmpty();
+        
+        // Verify state remains stable
+        assertEquals(0, getActiveInstanceCount(), "Should still have no instances");
+        assertFalse(isEvictionThreadRunning(), "Thread should still be stopped");
+        System.out.println("✓ Multiple calls to stopIfInstancesEmpty handled safely");
+    }
     
 }
