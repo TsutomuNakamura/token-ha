@@ -35,35 +35,44 @@ public class EvictionThread {
         return INSTANCE;
     }
     
-    public synchronized void register(TokenHa tokenHa) {
-        registeredInstances.add(new WeakReference<>(tokenHa));
-        cleanupDeadReferences();
-        System.out.println("TokenHa instance registered. Total instances: " + getActiveInstanceCount());
-        
-        // Start the thread if this is the first instance
-        if (getActiveInstanceCount() >= 1 && (executorService == null || executorService.isShutdown())) {
-            start();
+    public void register(TokenHa tokenHa) {
+        synchronized(this) {
+            registeredInstances.add(new WeakReference<>(tokenHa));
+            cleanupDeadReferences();
+            System.out.println("TokenHa instance registered. Total instances: " + getActiveInstanceCount());
+            
+            // Start the thread if this is the first instance
+            if (getActiveInstanceCount() >= 1 && (executorService == null || executorService.isShutdown())) {
+                start();
+            }
         }
     }
     
-    public synchronized void unregister(TokenHa tokenHa) {
-        registeredInstances.removeIf(ref -> ref.get() == tokenHa || ref.get() == null);
-        System.out.println("TokenHa instance unregistered. Total instances: " + getActiveInstanceCount());
-        
-        // Stop the thread if no more instances
-        if (getActiveInstanceCount() == 0) {
-            stop();
+    public void unregister(TokenHa tokenHa) {
+        synchronized(this) {
+            registeredInstances.removeIf(ref -> ref.get() == tokenHa || ref.get() == null);
+            System.out.println("TokenHa instance unregistered. Total instances: " + getActiveInstanceCount());
+            
+            // Stop the thread if no more instances
+            if (getActiveInstanceCount() == 0) {
+                stop();
+            }
         }
+
     }
     
     private void cleanupDeadReferences() {
-        // This does not needed 
+        // Remove synchronized - caller should already hold the lock
+        // This method should only be called from within synchronized blocks
         registeredInstances.removeIf(ref -> ref.get() == null);
     }
     
     private int getActiveInstanceCount() {
-        cleanupDeadReferences();
-        return registeredInstances.size();
+        // This method may be called from synchronized and unsynchronized contexts
+        // Use stream operations on the concurrent collection for thread safety
+        return (int) registeredInstances.stream()
+            .mapToInt(ref -> ref.get() != null ? 1 : 0)
+            .sum();
     }
     
     private synchronized void start() {
@@ -98,34 +107,45 @@ public class EvictionThread {
     }
 
     private void evictTokens() {
-        // Clean up dead references first
-        cleanupDeadReferences();
-        
-        // Stop thread if no active instances remain
-        if (registeredInstances.isEmpty()) {
-            stop();
-            return;
+        // Clean up dead references first (needs synchronization)
+        synchronized(this) {
+            cleanupDeadReferences();
+            
+            // Stop thread if no active instances remain
+            if (registeredInstances.isEmpty()) {
+                stop();
+                return;
+            }
         }
 
         evictTokensFromEachTokenHa();
     }
 
     public void evictTokensFromEachTokenHa() {
+        // Create a snapshot of current instances to avoid concurrent modification
+        Set<WeakReference<TokenHa>> currentInstances;
+        synchronized(this) {
+            currentInstances = Set.copyOf(registeredInstances);
+        }
+        
         System.out.println("Eviction task running at " + getCurrentTimeString() + " - Managing " + getActiveInstanceCount() + " TokenHa instances");
         
         int totalTokensBefore = 0;
         int totalTokensAfter = 0;
         int totalEvicted = 0;
 
-        for (WeakReference<TokenHa> ref : registeredInstances) {
-            EvictedCounter counter = evictTokensFromTokenHa(ref.get());
+        for (WeakReference<TokenHa> ref : currentInstances) {
+            TokenHa tokenHa = ref.get();
+            if (tokenHa != null) {
+                EvictedCounter counter = evictTokensFromTokenHa(tokenHa);
 
-            totalTokensBefore += counter.getSizeBefore();
-            totalTokensAfter += counter.getSizeAfter();
-            totalEvicted += counter.getSizeEvicted();
+                totalTokensBefore += counter.getSizeBefore();
+                totalTokensAfter += counter.getSizeAfter();
+                totalEvicted += counter.getSizeEvicted();
 
-            System.out.println("  TokenHa instance: " + counter.getSizeBefore() + " -> "
-                + counter.getSizeAfter() + " (evicted " + counter.getSizeEvicted() + " expired tokens)");
+                System.out.println("  TokenHa instance: " + counter.getSizeBefore() + " -> "
+                    + counter.getSizeAfter() + " (evicted " + counter.getSizeEvicted() + " expired tokens)");
+            }
         }
 
         System.out.println("  Total: " + totalTokensBefore + " -> " + totalTokensAfter + " tokens (evicted " + totalEvicted + " expired)");
@@ -135,13 +155,21 @@ public class EvictionThread {
         EvictedCounter counter = new EvictedCounter();
 
         if (tokenHa != null) {
-            int sizeBefore = tokenHa.getQueueSize();
-            List<TokenElement> evictedTokens = tokenHa.evictExpiredTokens();
-            int sizeAfter = tokenHa.getQueueSize();
-            
-            counter.setSizeBefore(sizeBefore);
-            counter.setSizeAfter(sizeAfter);
-            counter.setSizeEvicted(evictedTokens.size());
+            try {
+                int sizeBefore = tokenHa.getQueueSize();
+                List<TokenElement> evictedTokens = tokenHa.evictExpiredTokens();
+                int sizeAfter = tokenHa.getQueueSize();
+                
+                counter.setSizeBefore(sizeBefore);
+                counter.setSizeAfter(sizeAfter);
+                counter.setSizeEvicted(evictedTokens != null ? evictedTokens.size() : 0);
+            } catch (Exception e) {
+                // Handle case where TokenHa might be in an inconsistent state during cleanup
+                System.err.println("Error during token eviction: " + e.getMessage());
+                counter.setSizeBefore(0);
+                counter.setSizeAfter(0);
+                counter.setSizeEvicted(0);
+            }
         }
 
         return counter;
