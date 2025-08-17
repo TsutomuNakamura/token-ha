@@ -14,7 +14,7 @@ import com.google.gson.Gson;
  */
 public class TokenHa implements AutoCloseable {
 
-    Deque<TokenElement> fifoQueue = new ArrayDeque<>();
+
     private static final int DEFAUILT_EXPIREATION_TIME_SECONCDS = 60; // Expiration time in seconds
     private int numberOfLastTokens = 1; // Number of last tokens to keep
     private int maxTokens = 10; // Maximum number of tokens to keep
@@ -22,6 +22,8 @@ public class TokenHa implements AutoCloseable {
     
     // File path for persisting tokens
     private String persistenceFilePath = "tokenha-data.json"; // Default file path
+
+    private Deque<TokenElement> fifoQueue = new ArrayDeque<>();
     private FilePersistence filePersistence; // File persistence handler
     
     // Gson for JSON serialization/deserialization
