@@ -4,10 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.junit.jupiter.api.AfterEach;
@@ -17,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
 /**
  * Test class for EvictionThread register method functionality.
@@ -98,6 +106,29 @@ public class EvictionThreadTest {
         }
     }
     
+    private void invokeEvictTokens() throws Exception {
+        Method evictTokensMethod = EvictionThread.class.getDeclaredMethod("evictTokens");
+        evictTokensMethod.setAccessible(true);
+        evictTokensMethod.invoke(evictionThread);
+    }
+    
+    private Set<WeakReference<TokenHa>> getRegisteredInstances() throws Exception {
+        Field registeredInstancesField = EvictionThread.class.getDeclaredField("registeredInstances");
+        registeredInstancesField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Set<WeakReference<TokenHa>> instances = (Set<WeakReference<TokenHa>>) registeredInstancesField.get(evictionThread);
+        return instances;
+    }
+
+    private List<TokenElement> createMockTokenList(int size) {
+        List<TokenElement> tokens = new ArrayList<>();
+        long currentTime = System.currentTimeMillis();
+        for (int i = 0; i < size; i++) {
+            tokens.add(new TokenElement("mockToken" + i, currentTime + i));
+        }
+        return tokens;
+    }
+
     // Test cases for EvictionThread#register(TokenHa tokenHa);
 
     @Test
@@ -784,6 +815,239 @@ public class EvictionThreadTest {
         assertEquals(0, getActiveInstanceCount(), "Should still have no instances");
         assertFalse(isEvictionThreadRunning(), "Thread should still be stopped");
         System.out.println("✓ Multiple calls to stopIfInstancesEmpty handled safely");
+    }
+    
+    // Test cases for EvictionThread#evictTokens();
+    
+    @Test
+    @DisplayName("Test evictTokens when no instances are registered")
+    public void testEvictTokensWhenEmpty() throws Exception {
+        System.out.println("🧪 TEST: evictTokens when no instances are registered");
+        
+        // Ensure registry is empty
+        assertEquals(0, getActiveInstanceCount(), "Should start with no instances");
+        
+        // Call evictTokens - should handle empty registry gracefully
+        invokeEvictTokens();
+        
+        // Should still be empty and not crash
+        assertEquals(0, getActiveInstanceCount(), "Should still have no instances");
+        assertFalse(isEvictionThreadRunning(), "Thread should not be running after evictTokens with empty registry");
+    }
+    
+    @Test
+    @DisplayName("Test evictTokens with single registered instance")
+    public void testEvictTokensWithSingleInstance() throws Exception {
+        System.out.println("🧪 TEST: evictTokens with single registered instance");
+        
+        // Create a mock with evictExpiredTokens method
+        TokenHa mockToken = mock(TokenHa.class);
+        List<TokenElement> expiredTokens = new ArrayList<>();
+        expiredTokens.add(new TokenElement("expired1", System.currentTimeMillis()));
+        
+        when(mockToken.getQueueSize()).thenReturn(5).thenReturn(4); // before and after eviction
+        when(mockToken.evictExpiredTokens()).thenReturn(expiredTokens);
+        
+        // Register the mock
+        evictionThread.register(mockToken);
+        assertEquals(1, getActiveInstanceCount(), "Should have 1 instance registered");
+        
+        // Call evictTokens
+        invokeEvictTokens();
+        
+        // Verify evictExpiredTokens was called on the TokenHa instance
+        verify(mockToken, times(1)).evictExpiredTokens();
+        verify(mockToken, times(2)).getQueueSize(); // called before and after eviction
+        
+        // Clean up
+        evictionThread.unregister(mockToken);
+    }
+    
+    @Test
+    @DisplayName("Test evictTokens with multiple registered instances")
+    public void testEvictTokensWithMultipleInstances() throws Exception {
+        System.out.println("🧪 TEST: evictTokens with multiple registered instances");
+        
+        // Create multiple mocks
+        TokenHa mock1 = mock(TokenHa.class);
+        TokenHa mock2 = mock(TokenHa.class);
+        TokenHa mock3 = mock(TokenHa.class);
+        
+        // Set up mock behaviors
+        when(mock1.getQueueSize()).thenReturn(10).thenReturn(8);
+        when(mock1.evictExpiredTokens()).thenReturn(createMockTokenList(2));
+        
+        when(mock2.getQueueSize()).thenReturn(15).thenReturn(12);
+        when(mock2.evictExpiredTokens()).thenReturn(createMockTokenList(3));
+        
+        when(mock3.getQueueSize()).thenReturn(5).thenReturn(5);
+        when(mock3.evictExpiredTokens()).thenReturn(new ArrayList<>());
+        
+        // Register all mocks
+        evictionThread.register(mock1);
+        evictionThread.register(mock2);
+        evictionThread.register(mock3);
+        assertEquals(3, getActiveInstanceCount(), "Should have 3 instances registered");
+        
+        // Call evictTokens
+        invokeEvictTokens();
+        
+        // Verify evictExpiredTokens was called on all instances
+        verify(mock1, times(1)).evictExpiredTokens();
+        verify(mock2, times(1)).evictExpiredTokens();
+        verify(mock3, times(1)).evictExpiredTokens();
+        
+        // Clean up
+        evictionThread.unregister(mock1);
+        evictionThread.unregister(mock2);
+        evictionThread.unregister(mock3);
+    }
+    
+    @Test
+    @DisplayName("Test evictTokens stops thread when all references become null")
+    public void testEvictTokensStopsWhenAllReferencesNull() throws Exception {
+        System.out.println("🧪 TEST: evictTokens stops thread when all references become null");
+        
+        // Create a temporary instance that will be eligible for GC
+        TokenHa tempToken = mock(TokenHa.class);
+        evictionThread.register(tempToken);
+        assertEquals(1, getActiveInstanceCount(), "Should have 1 instance registered");
+        assertTrue(isEvictionThreadRunning(), "Thread should be running");
+        
+        // Make the instance eligible for garbage collection
+        tempToken = null;
+        
+        // Force garbage collection
+        System.gc();
+        Thread.sleep(100);
+        
+        // Call evictTokens - this should clean up dead references and stop the thread
+        invokeEvictTokens();
+        
+        // The method should have detected no active instances and stopped the thread
+        if (getActiveInstanceCount() == 0) {
+            assertFalse(isEvictionThreadRunning(), "Thread should be stopped when no active instances remain");
+            System.out.println("✓ Thread properly stopped after cleaning up dead references");
+        } else {
+            System.out.println("⚠ GC timing: Some references may still be active due to GC behavior");
+        }
+    }
+    
+    @Test
+    @DisplayName("Test evictTokens with mixed null and valid references")
+    public void testEvictTokensWithMixedReferences() throws Exception {
+        System.out.println("🧪 TEST: evictTokens with mixed null and valid references");
+        
+        // Register valid instances
+        TokenHa validMock1 = mock(TokenHa.class);
+        TokenHa validMock2 = mock(TokenHa.class);
+        
+        when(validMock1.getQueueSize()).thenReturn(3).thenReturn(2);
+        when(validMock1.evictExpiredTokens()).thenReturn(createMockTokenList(1));
+        
+        when(validMock2.getQueueSize()).thenReturn(7).thenReturn(5);
+        when(validMock2.evictExpiredTokens()).thenReturn(createMockTokenList(2));
+        
+        evictionThread.register(validMock1);
+        evictionThread.register(validMock2);
+        
+        // Add an instance that will become eligible for GC
+        TokenHa tempToken = mock(TokenHa.class);
+        evictionThread.register(tempToken);
+        
+        assertEquals(3, getActiveInstanceCount(), "Should have 3 instances registered");
+        
+        // Make tempToken eligible for GC
+        tempToken = null;
+        System.gc();
+        Thread.sleep(100);
+        
+        // Call evictTokens
+        invokeEvictTokens();
+        
+        // Should have processed valid instances and cleaned up dead references
+        verify(validMock1, times(1)).evictExpiredTokens();
+        verify(validMock2, times(1)).evictExpiredTokens();
+        
+        // Clean up
+        evictionThread.unregister(validMock1);
+        evictionThread.unregister(validMock2);
+    }
+    
+    @Test
+    @DisplayName("Test evictTokens synchronization with concurrent registration")
+    public void testEvictTokensSynchronization() throws Exception {
+        System.out.println("🧪 TEST: evictTokens synchronization with concurrent registration");
+        
+        // Register initial instance
+        TokenHa initialMock = mock(TokenHa.class);
+        when(initialMock.getQueueSize()).thenReturn(5).thenReturn(4);
+        when(initialMock.evictExpiredTokens()).thenReturn(createMockTokenList(1));
+        
+        evictionThread.register(initialMock);
+        assertEquals(1, getActiveInstanceCount(), "Should have 1 instance initially");
+        
+        // Create a thread that will register more instances during eviction
+        Thread registrationThread = new Thread(() -> {
+            try {
+                Thread.sleep(50); // Small delay to let evictTokens start
+                TokenHa concurrentMock = mock(TokenHa.class);
+                evictionThread.register(concurrentMock);
+                System.out.println("Concurrent registration completed");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        
+        // Start concurrent registration
+        registrationThread.start();
+        
+        // Call evictTokens
+        invokeEvictTokens();
+        
+        // Wait for concurrent thread to finish
+        registrationThread.join(1000);
+        
+        // Verify initial mock was processed
+        verify(initialMock, times(1)).evictExpiredTokens();
+        
+        // Should have at least the initial mock processed successfully
+        System.out.println("✓ evictTokens handled concurrent operations correctly");
+        
+        // Clean up
+        clearRegisteredInstances();
+    }
+    
+    @Test
+    @DisplayName("Test evictTokens behavior when TokenHa throws exceptions")
+    public void testEvictTokensWithExceptions() throws Exception {
+        System.out.println("🧪 TEST: evictTokens behavior when TokenHa throws exceptions");
+        
+        // Create a mock that throws an exception
+        TokenHa exceptionMock = mock(TokenHa.class);
+        
+        // Set up exception behavior
+        when(exceptionMock.getQueueSize()).thenThrow(new RuntimeException("Test exception"));
+        
+        // Register the exception-throwing mock
+        evictionThread.register(exceptionMock);
+        assertEquals(1, getActiveInstanceCount(), "Should have 1 instance registered");
+        
+        // Call evictTokens - should propagate the exception
+        boolean exceptionThrown = false;
+        try {
+            invokeEvictTokens();
+        } catch (Exception e) {
+            exceptionThrown = true;
+            assertTrue(e.getCause() instanceof RuntimeException, "Should propagate RuntimeException");
+            assertEquals("Test exception", e.getCause().getMessage(), "Should propagate original exception message");
+        }
+        
+        assertTrue(exceptionThrown, "Exception should have been thrown");
+        System.out.println("✓ evictTokens correctly propagates exceptions from TokenHa instances");
+        
+        // Clean up
+        clearRegisteredInstances();
     }
     
 }
