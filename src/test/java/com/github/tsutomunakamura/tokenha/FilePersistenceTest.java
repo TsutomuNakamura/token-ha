@@ -86,4 +86,54 @@ public class FilePersistenceTest {
             assertEquals("", loadedData); // Empty file returns empty string
         }
     }
+    @Test
+    public void testSaveWritesDataToFile() {
+        try (FilePersistence filePersistence = new FilePersistence(TEST_FILE)) {
+            currentTestInstance = filePersistence;
+            String jsonData = "{\"tokens\":[{\"token\":\"abc\",\"timeMillis\":1234567890}]}";
+            filePersistence.save(jsonData);
+
+            // Read file content directly to verify
+            String fileContent = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(TEST_FILE)), java.nio.charset.StandardCharsets.UTF_8);
+            assertEquals(jsonData, fileContent);
+        } catch (Exception e) {
+            fail("Exception should not be thrown: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testSaveWarnsIfNoFileLock() {
+        try (FilePersistence filePersistence = new FilePersistence(TEST_FILE)) {
+            currentTestInstance = filePersistence;
+            // Simulate no file lock
+            java.lang.reflect.Field lockField = FilePersistence.class.getDeclaredField("fileLock");
+            lockField.setAccessible(true);
+            lockField.set(filePersistence, null);
+
+            String jsonData = "{\"tokens\":[]}";
+            // Should still save, but print a warning (cannot assert warning, but should not throw)
+            filePersistence.save(jsonData);
+
+            String fileContent = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(TEST_FILE)), java.nio.charset.StandardCharsets.UTF_8);
+            assertEquals(jsonData, fileContent);
+        } catch (Exception e) {
+            fail("Exception should not be thrown: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testSaveThrowsIfPersistenceFileNull() {
+        try (FilePersistence filePersistence = new FilePersistence(TEST_FILE)) {
+            currentTestInstance = filePersistence;
+            // Simulate persistenceFile == null
+            java.lang.reflect.Field pfField = FilePersistence.class.getDeclaredField("persistenceFile");
+            pfField.setAccessible(true);
+            pfField.set(filePersistence, null);
+
+            assertThrows(IllegalStateException.class, () -> filePersistence.save("{\"tokens\":[]}"));
+        } catch (Exception e) {
+            fail("Exception should not be thrown during test setup: " + e.getMessage());
+        }
+    }
+
 }
