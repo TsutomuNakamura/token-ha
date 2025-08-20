@@ -44,23 +44,28 @@ public class FilePersistence implements AutoCloseable {
      */
     private void initializeFile() {
         try {
-            // Always create/open the file for exclusive access
-            // This is necessary even for reading to prevent other processes from writing
+            // 1. This can throw IOException if file cannot be created/opened
             persistenceFile = new RandomAccessFile(filePath, "rw");
+            
+            // 2. This can throw IOException if channel cannot be obtained
             fileChannel = persistenceFile.getChannel();
             
-            // Try to acquire exclusive lock
+            // 3. This can throw IOException if locking operation fails
             fileLock = fileChannel.tryLock();
             if (fileLock == null) {
                 System.err.println("Warning: Could not acquire file lock for " + filePath + 
                                  ". Another instance may be using this file.");
-                // Continue without lock, but warn user
+                // Could throw exception here or implement retry logic
+                // For now, continue without lock but operations may be unsafe
             } else {
                 System.out.println("Acquired exclusive lock for persistence file: " + filePath);
             }
         } catch (IOException e) {
             System.err.println("Failed to initialize persistence file: " + filePath + 
                              ". Error: " + e.getMessage());
+            // Clean up partially initialized resources
+            close();
+            throw new RuntimeException("Could not initialize persistence file", e);
         }
     }
     
@@ -96,8 +101,11 @@ public class FilePersistence implements AutoCloseable {
      */
     public void save(String jsonData) {
         if (persistenceFile == null) {
-            System.err.println("Persistence file not initialized. Cannot save data.");
-            return;
+            throw new IllegalStateException("Persistence file not initialized. Cannot save data.");
+        }
+        
+        if (fileLock == null) {
+            System.err.println("Warning: Saving without file lock. Data may be corrupted by concurrent access.");
         }
         
         try {
