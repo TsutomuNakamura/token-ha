@@ -60,33 +60,6 @@ public class FilePersistenceTest {
             fail("IOException should not be thrown: " + e.getMessage());
         }
     }
-
-    // Tests for "private void initializeFile().
-    // A private method should not be tested directly in some philosophies but here we do it for its complexity.
-    // @Test
-    // public void testInitializeFileCreatesFileFailedToGetLock() throws Exception {
-    //     // Use MockedStatic to mock the RandomAccessFile constructor
-    //     try (MockedStatic<RandomAccessFile> mockedRAF = mockStatic(RandomAccessFile.class)) {
-    //         RandomAccessFile mockRAF = mock(RandomAccessFile.class);
-    //         FileChannel mockChannel = mock(FileChannel.class);
-            
-    //         // Mock the constructor call
-    //         mockedRAF.whenNew(() -> new RandomAccessFile(any(String.class), any(String.class))).thenReturn(mockRAF);
-            
-    //         // Mock getChannel to return mock channel
-    //         when(mockRAF.getChannel()).thenReturn(mockChannel);
-            
-    //         // Mock tryLock to return null (failed to get lock)
-    //         when(mockChannel.tryLock()).thenReturn(null);
-
-    //         // Now, when FilePersistence calls new RandomAccessFile, it will get the mock
-    //         FilePersistence filePersistence = new FilePersistence(TEST_FILE);
-    //         currentTestInstance = filePersistence;
-
-    //         // Add assertions or verifications as needed
-    //         assertTrue(filePersistence.fileExists(), "File should be created even if using mocked RandomAccessFile");
-    //     }
-    // }
     
     // Approach 1: Using MockedConstruction (requires Mockito 3.4+)
     @Test
