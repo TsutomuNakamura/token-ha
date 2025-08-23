@@ -385,4 +385,21 @@ public class TokenHaTest {
         assertEquals(1, tokenHa.getQueueSize(), "Should still have 1 tokens after eviction");
         assertEquals("token-2", tokenHa.newestToken().getToken(), "Newest token should be token-2");
     }
+
+    @Test
+    @DisplayName("evictExpiredTokens should not remove last tokens even if expired")
+    void evictExpiredTokens_shouldNotRemoveLastTokens() throws Exception {
+        tokenHa.addIfAvailable("token-1");
+        Thread.sleep(1100);
+        tokenHa.addIfAvailable("token-2");
+        Thread.sleep(1100);
+        tokenHa.addIfAvailable("token-3");
+
+        assertEquals(3, tokenHa.getQueueSize(), "Should have 3 tokens before eviction");
+
+        Thread.sleep(15000); // Wait 15 seconds to ensure all tokens are expired
+
+        assertEquals(1, tokenHa.getQueueSize(), "Should still have 1 token after eviction due to numberOfLastTokens=1");
+        assertEquals("token-3", tokenHa.newestToken().getToken(), "Newest token should be token-3");
+    }
 }
