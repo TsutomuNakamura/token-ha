@@ -414,11 +414,6 @@ public class TokenHaTest {
     void loadFromFile_shouldLoadTokensFromFile() throws Exception {
         tokenHa.deletePersistenceFile();
         tokenHa.close();
-        // Thread.sleep(2000);
-        // tokenHa.addIfAvailable("token-1");
-        // Thread.sleep(1100);
-        // tokenHa.addIfAvailable("token-2");
-        // // Thread.sleep(10000000);
 
         String json = """
           {
@@ -446,4 +441,21 @@ public class TokenHaTest {
             assertEquals("token-4", newTokenHa.newestToken().getToken(), "Remaining token should be token-4");
         }
     }
+
+    // // Skipped test. When TokenHa has initialized, an empty file is created. So this test is not valid.
+    // @Test
+    // @DisplayName("loadFromFile should handle non-existent file gracefully")
+    // void loadFromFile_shouldHandleNonExistentFile() throws Exception {
+    //     tokenHa.close();
+
+    //     // Ensure the file does not exist
+    //     java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get("test-tokenha-data.json"));
+
+    //     // Create a new instance to load from the non-existent file
+    //     try (TokenHa newTokenHa = new TokenHa(config)) {
+    //         newTokenHa.loadFromFile();
+    //         assertEquals(0, newTokenHa.getQueueSize(), "New instance should have 0 tokens when file does not exist");
+    //     }
+    // }
+
 }
