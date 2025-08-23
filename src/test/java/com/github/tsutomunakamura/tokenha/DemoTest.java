@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
 import java.util.Iterator;
 
 /**
@@ -32,7 +33,7 @@ public class DemoTest {
     private String testFilePath;
     
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws IOException {
         testFilePath = "demo-test-tokens.json";
         tokenHa = new TokenHa();
         tokenHa.setPersistenceFilePath(testFilePath);
@@ -179,16 +180,16 @@ public class DemoTest {
         // Verify file exists
         assertTrue(tokenHa.persistenceFileExists(), "Persistence file should exist after adding tokens");
         
-        // Close first instance and create new one
-        tokenHa.close();
-        tokenHa = new TokenHa();
-        tokenHa.setPersistenceFilePath(testFilePath);
-        
-        // Should start empty
-        assertEquals(0, tokenHa.getQueueSize(), "New instance should start empty");
-        
-        // Load from file
         try {
+            // Close first instance and create new one
+            tokenHa.close();
+            tokenHa = new TokenHa();
+            tokenHa.setPersistenceFilePath(testFilePath);
+            
+            // Should start empty
+            assertEquals(0, tokenHa.getQueueSize(), "New instance should start empty");
+            
+            // Load from file
             tokenHa.loadFromFile();
         } catch (java.io.IOException e) {
             fail("IOException occurred during loadFromFile: " + e.getMessage());
@@ -232,11 +233,12 @@ public class DemoTest {
     public void testOverflowBehaviorWithDeserialization() throws InterruptedException {
         System.out.println("=== Test: Overflow Behavior with Deserialization ===");
         
-        // Setup: Create tokens that exceed maxTokens
-        TokenHa setupTokenHa = new TokenHa();
-        setupTokenHa.setPersistenceFilePath("overflow-test.json");
-        
+        TokenHa setupTokenHa = null;
         try {
+            // Setup: Create tokens that exceed maxTokens
+            setupTokenHa = new TokenHa();
+            setupTokenHa.setPersistenceFilePath("overflow-test.json");
+
             // Add more tokens than the limit (default maxTokens is 10)
             for (int i = 1; i <= 12; i++) {
                 setupTokenHa.addIfAvailable("overflow_token_" + i);
@@ -275,6 +277,8 @@ public class DemoTest {
             
             // Cleanup
             loadTokenHa.deletePersistenceFile();
+        } catch (IOException e) {
+            fail("IOException during load instance creation: " + e.getMessage());
         }
     }
     
@@ -307,10 +311,10 @@ public class DemoTest {
         // 5. Test persistence and loading
         String originalJson = tokenHa.toJson();
         tokenHa.close();
-        
-        tokenHa = new TokenHa();
-        tokenHa.setPersistenceFilePath(testFilePath);
+
         try {
+            tokenHa = new TokenHa();
+            tokenHa.setPersistenceFilePath(testFilePath);
             tokenHa.loadFromFile();
         } catch (java.io.IOException e) {
             fail("IOException occurred during loadFromFile: " + e.getMessage());

@@ -31,7 +31,7 @@ public class TokenHa implements AutoCloseable {
     private static final Gson gson = new Gson();
     
     // Constructor registers this instance with singleton eviction thread
-    public TokenHa() {
+    public TokenHa() throws IOException {
         EvictionThread.getInstance().register(this);
         filePersistence = new FilePersistence(persistenceFilePath);
     }
@@ -153,7 +153,7 @@ public class TokenHa implements AutoCloseable {
      * Set the file path for persistence.
      * @param filePath the file path to use for saving/loading tokens
      */
-    public void setPersistenceFilePath(String filePath) {
+    public void setPersistenceFilePath(String filePath) throws IOException {
         this.persistenceFilePath = filePath;
         filePersistence.setFilePath(filePath);
     }

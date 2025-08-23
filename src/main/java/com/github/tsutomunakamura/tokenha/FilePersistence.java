@@ -24,7 +24,7 @@ public class FilePersistence implements AutoCloseable {
     /**
      * Constructor with default file path.
      */
-    public FilePersistence() {
+    public FilePersistence() throws IOException {
         this.filePath = "tokenha-data.json";
         initializeFile();
     }
@@ -33,7 +33,7 @@ public class FilePersistence implements AutoCloseable {
      * Constructor with custom file path.
      * @param filePath the file path to use for persistence
      */
-    public FilePersistence(String filePath) {
+    public FilePersistence(String filePath) throws IOException {
         this.filePath = filePath;
         initializeFile();
     }
@@ -42,13 +42,14 @@ public class FilePersistence implements AutoCloseable {
      * Initialize the persistence file with exclusive locking.
      * Creates the file only if we're going to save data, not just for loading.
      */
-    private void initializeFile() {
+    private void initializeFile() throws IOException {
         try {
             // 1. This can throw IOException if file cannot be created/opened
             persistenceFile = new RandomAccessFile(filePath, "rw");
             
             // 2. This can throw IOException if channel cannot be obtained
             fileChannel = persistenceFile.getChannel();
+            System.out.println(fileChannel);
             
             // 3. This can throw IOException if locking operation fails
             fileLock = fileChannel.tryLock();
@@ -57,15 +58,14 @@ public class FilePersistence implements AutoCloseable {
                                  ". Another instance may be using this file.");
                 // Could throw exception here or implement retry logic
                 // For now, continue without lock but operations may be unsafe
+                throw new IOException("Failed to acquire file lock");
             } else {
                 System.out.println("Acquired exclusive lock for persistence file: " + filePath);
             }
         } catch (IOException e) {
-            System.err.println("Failed to initialize persistence file: " + filePath + 
-                             ". Error: " + e.getMessage());
-            // Clean up partially initialized resources
+            System.err.println("Failed to initialize persistence file: " + filePath + ". Error: " + e.getMessage());
             close();
-            throw new RuntimeException("Could not initialize persistence file", e);
+            throw e;
         }
     }
     
@@ -141,7 +141,7 @@ public class FilePersistence implements AutoCloseable {
      * Note: This will close the current file and reinitialize with the new path.
      * @param filePath the file path to use
      */
-    public void setFilePath(String filePath) {
+    public void setFilePath(String filePath) throws IOException {
         // Close current file if open
         close();
         

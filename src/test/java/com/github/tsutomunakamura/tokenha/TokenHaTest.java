@@ -7,6 +7,7 @@ import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
@@ -26,6 +27,8 @@ public class TokenHaTest {
             System.out.println(json);
             
             assertEquals("{\"tokens\":[]}", json);
+        } catch (Exception e) {
+            fail("Exception should not be thrown: " + e.getMessage());
         }
     }
 
@@ -46,6 +49,8 @@ public class TokenHaTest {
             assertTrue(json.endsWith("]}"));
             assertTrue(json.contains("\"token\":\"user123\""));
             assertTrue(json.contains("\"timeMillis\":"));
+        } catch (Exception e) {
+            fail("Exception should not be thrown: " + e.getMessage());
         }
     }
 
@@ -71,6 +76,8 @@ public class TokenHaTest {
             // Check that at least one token is present
             assertTrue(json.contains("\"token\":\"user123\""));
             assertTrue(json.contains("\"timeMillis\":"));
+        } catch (Exception e) {
+            fail("Exception should not be thrown: " + e.getMessage());
         }
     }
 
@@ -93,6 +100,8 @@ public class TokenHaTest {
             // Ensure it's valid JSON structure
             assertTrue(json.startsWith("{\"tokens\":["));
             assertTrue(json.endsWith("]}"));
+        } catch (Exception e) {
+            fail("Exception should not be thrown: " + e.getMessage());
         }
     }
 
@@ -119,6 +128,8 @@ public class TokenHaTest {
             
             // Validate JSON structure
             assertTrue(json.matches("\\{\"tokens\":\\[.*\\]\\}"));
+        } catch (Exception e) {
+            fail("Exception should not be thrown: " + e.getMessage());
         }
     }
     
@@ -145,6 +156,8 @@ public class TokenHaTest {
             // Now the second token should be added successfully
             assertTrue(tokenHa.addIfAvailable("token2"));
             assertEquals(2, tokenHa.getQueueSize());
+        } catch (IOException e) {
+            fail("IOException should not be thrown: " + e.getMessage());
         }
     }
     
@@ -184,6 +197,8 @@ public class TokenHaTest {
             } catch (Exception e) {
                 fail("Reflection failed: " + e.getMessage());
             }
+        } catch ( IOException e) {
+            fail("IOException should not be thrown: " + e.getMessage());
         }
     }
     
@@ -205,6 +220,8 @@ public class TokenHaTest {
             // Should be valid JSON structure
             assertTrue(json.startsWith("{\"tokens\":["));
             assertTrue(json.endsWith("]}"));
+        } catch (IOException e) {
+            fail("IOException should not be thrown: " + e.getMessage());
         }
     }
     
@@ -260,6 +277,8 @@ public class TokenHaTest {
             try (TokenHa cleanup = new TokenHa()) {
                 cleanup.setPersistenceFilePath(testFilePath);
                 cleanup.deletePersistenceFile();
+            } catch (IOException e) {
+                System.err.println("Failed to clean up test file: " + e.getMessage());
             }
         }
     }
