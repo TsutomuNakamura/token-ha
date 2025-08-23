@@ -20,14 +20,19 @@ import java.util.Iterator;
  */
 @ExtendWith(MockitoExtension.class)
 public class TokenHaTest {
-    
+
     private TokenHa tokenHa;
-    private static final String TEST_FILE_PATH = "test-tokenha-data.json";
+    private TokenHaConfig config = new TokenHaConfig.Builder()
+                                                .maxTokens(3)
+                                                .coolTimeToAddMillis(1000)
+                                                .numberOfLastTokens(1)
+                                                .expirationTimeMillis(60000)
+                                                .persistenceFilePath("test-tokenha-data.json")
+                                                .build();
     
     @BeforeEach
     void setUp() throws IOException {
-        tokenHa = new TokenHa();
-        tokenHa.setPersistenceFilePath(TEST_FILE_PATH);
+        tokenHa = new TokenHa(config);
         // Clean up any existing test file
         tokenHa.deletePersistenceFile();
     }
@@ -101,31 +106,31 @@ public class TokenHaTest {
     @DisplayName("Should remove oldest token when queue is full")
     void addIfAvailable_shouldRemoveOldestToken_whenQueueIsFull() throws Exception {
         // Given - fill the queue to maximum capacity (maxTokens = 10)
-        for (int i = 1; i <= 10; i++) {
+        for (int i = 1; i <= 3; i++) {
             tokenHa.addIfAvailable("token-" + i);
-            if (i < 10) {
+            if (i < 3) {
                 Thread.sleep(1100); // Wait for cool time to pass
             }
         }
         
-        assertEquals(10, tokenHa.getQueueSize(), "Queue should be full");
+        assertEquals(3, tokenHa.getQueueSize(), "Queue should be full");
         
         // Wait for cool time to pass
         Thread.sleep(1100);
         
         // When - add one more token
-        String newToken = "token-11";
+        String newToken = "token-4";
         boolean result = tokenHa.addIfAvailable(newToken);
         
         // Then
         assertTrue(result, "New token should be added successfully");
-        assertEquals(10, tokenHa.getQueueSize(), "Queue size should remain at maximum");
+        assertEquals(3, tokenHa.getQueueSize(), "Queue size should remain at maximum");
         assertEquals(newToken, tokenHa.newestToken().getToken(), "Newest token should be the latest added");
         
         // Verify that the oldest token was removed
         Iterator<TokenElement> iterator = tokenHa.getDescIterator();
         TokenElement newest = iterator.next();
-        assertEquals("token-11", newest.getToken(), "First element should be newest");
+        assertEquals("token-4", newest.getToken(), "First element should be newest");
         
         // Check that token-1 (oldest) is no longer in the queue
         boolean foundToken1 = false;
@@ -332,9 +337,9 @@ public class TokenHaTest {
     @DisplayName("availableToAdd should return false when queue is full")
     void availableToAdd_shouldReturnFalse_whenQueueIsFull() {
         // Given - fill the queue to maximum capacity (maxTokens = 10)
-        for (int i = 1; i <= 10; i++) {
+        for (int i = 1; i <= 3; i++) {
             tokenHa.addIfAvailable("token-" + i);
-            if (i < 10) {
+            if (i < 3) {
                 try { Thread.sleep(1100); } catch (InterruptedException e) { }
             }
         }

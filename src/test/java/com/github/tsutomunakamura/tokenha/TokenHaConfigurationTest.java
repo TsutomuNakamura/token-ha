@@ -44,7 +44,7 @@ public class TokenHaConfigurationTest {
             .maxTokens(5)
             .coolTimeToAddMillis(500)
             .numberOfLastTokens(1)
-            .expirationTimeSeconds(30000)
+            .expirationTimeMillis(30000)
             .persistenceFilePath("test-builder-tokens.json")
             .build();
         
@@ -72,7 +72,7 @@ public class TokenHaConfigurationTest {
         props.setProperty("tokenha.max.tokens", "3");
         props.setProperty("tokenha.cool.time.millis", "200");
         props.setProperty("tokenha.number.of.last.tokens", "1");
-        props.setProperty("tokenha.expiration.time.seconds", "25000");
+        props.setProperty("tokenha.expiration.time.millis", "25000");
         props.setProperty("tokenha.persistence.file.path", "test-props-tokens.json");
         
         TokenHaConfig config = TokenHaConfig.fromProperties(props);
@@ -127,7 +127,7 @@ public class TokenHaConfigurationTest {
         
         // Test invalid expiration time
         assertThrows(IllegalArgumentException.class, () -> {
-            new TokenHaConfig.Builder().expirationTimeSeconds(-1).build();
+            new TokenHaConfig.Builder().expirationTimeMillis(-1).build();
         }, "Should reject negative expiration time");
         
         // Test invalid number of last tokens vs max tokens
@@ -208,7 +208,7 @@ public class TokenHaConfigurationTest {
             .maxTokens(15)
             .coolTimeToAddMillis(1500)
             .numberOfLastTokens(2)
-            .expirationTimeSeconds(75000)
+            .expirationTimeMillis(75000)
             .persistenceFilePath("test-toString.json")
             .build();
         
@@ -220,7 +220,7 @@ public class TokenHaConfigurationTest {
         assertTrue(configString.contains("maxTokens=15"));
         assertTrue(configString.contains("coolTimeToAddMillis=1500"));
         assertTrue(configString.contains("numberOfLastTokens=2"));
-        assertTrue(configString.contains("expirationTimeSeconds=75000"));
+        assertTrue(configString.contains("expirationTimeMillis=75000"));
         assertTrue(configString.contains("test-toString.json"));
     }
 }

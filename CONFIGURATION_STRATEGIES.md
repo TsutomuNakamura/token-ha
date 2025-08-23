@@ -9,8 +9,8 @@ This document outlines different strategies for configuring TokenHa parameters e
 TokenHaConfig config = new TokenHaConfig.Builder()
     .maxTokens(20)
     .coolTimeToAddMillis(2000)
-    .numberOfLastTokens(2)
-    .expirationTimeSeconds(120000)
+    .numberOfLastTokens(1)
+    .expirationTimeMillis(120000)
     .persistenceFilePath("custom-tokens.json")
     .build();
 
@@ -24,7 +24,7 @@ Create a `tokenha.properties` file:
 tokenha.max.tokens=15
 tokenha.cool.time.millis=1500
 tokenha.number.of.last.tokens=2
-tokenha.expiration.time.seconds=90000
+tokenha.expiration.time.millis=90000
 tokenha.persistence.file.path=app-tokens.json
 ```
 
@@ -43,7 +43,7 @@ Set environment variables:
 export TOKENHA_MAX_TOKENS=25
 export TOKENHA_COOL_TIME_MILLIS=500
 export TOKENHA_NUMBER_OF_LAST_TOKENS=3
-export TOKENHA_EXPIRATION_TIME_SECONDS=180000
+export TOKENHA_EXPIRATION_TIME_MILLIS=180000
 export TOKENHA_PERSISTENCE_FILE_PATH=/tmp/tokens.json
 ```
 
@@ -60,7 +60,7 @@ Set system properties:
 java -Dtokenha.max.tokens=30 \
      -Dtokenha.cool.time.millis=800 \
      -Dtokenha.number.of.last.tokens=1 \
-     -Dtokenha.expiration.time.seconds=45000 \
+     -Dtokenha.expiration.time.millis=45000 \
      -Dtokenha.persistence.file.path=system-tokens.json \
      YourMainClass
 ```

@@ -16,7 +16,7 @@ import java.io.IOException;
 public class TokenHa implements AutoCloseable {
 
     // Configuration parameters - now configurable
-    private final int expirationTimeSeconds;
+    private final int expirationTimeMillis;
     private final int numberOfLastTokens;
     private final int maxTokens;
     private final long coolTimeToAddMillis;
@@ -43,7 +43,7 @@ public class TokenHa implements AutoCloseable {
             throw new IllegalArgumentException("Configuration cannot be null");
         }
         
-        this.expirationTimeSeconds = config.getExpirationTimeSeconds();
+        this.expirationTimeMillis = config.getExpirationTimeMillis();
         this.numberOfLastTokens = config.getNumberOfLastTokens();
         this.maxTokens = config.getMaxTokens();
         this.coolTimeToAddMillis = config.getCoolTimeToAddMillis();
@@ -122,7 +122,7 @@ public class TokenHa implements AutoCloseable {
 
             // Get the oldest element
             TokenElement element = fifoQueue.peek();
-            if (element != null && (currentTime - element.getTimeMillis()) > expirationTimeSeconds) {
+            if (element != null && (currentTime - element.getTimeMillis()) > expirationTimeMillis) {
                 expiredTokens.add(fifoQueue.poll());
             } else {
                 break;
