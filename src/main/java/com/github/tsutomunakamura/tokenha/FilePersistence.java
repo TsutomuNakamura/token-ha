@@ -129,22 +129,11 @@ public class FilePersistence implements AutoCloseable {
      * Load JSON data from the file if it exists.
      * @return the JSON content, or null if file doesn't exist or error occurs
      */
-    public String load() {
-        try {
-            if (Files.exists(Paths.get(filePath))) {
-                String content = new String(Files.readAllBytes(Paths.get(filePath)));
-                System.out.println("Loaded data from file: " + filePath);
-                System.out.println("Content: " + content);
-                return content;
-            } else {
-                System.out.println("Persistence file does not exist: " + filePath);
-                return null;
-            }
-        } catch (IOException e) {
-            System.err.println("Failed to load data from file: " + filePath + 
-                             ". Error: " + e.getMessage());
-            return null;
-        }
+    public String load() throws IOException {
+        String content = new String(Files.readAllBytes(Paths.get(filePath)));
+        System.out.println("Loaded data from file: " + filePath);
+        System.out.println("Content: " + content);
+        return content;
     }
     
     /**

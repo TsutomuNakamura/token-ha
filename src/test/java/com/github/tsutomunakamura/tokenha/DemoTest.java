@@ -188,7 +188,11 @@ public class DemoTest {
         assertEquals(0, tokenHa.getQueueSize(), "New instance should start empty");
         
         // Load from file
-        tokenHa.loadFromFile();
+        try {
+            tokenHa.loadFromFile();
+        } catch (java.io.IOException e) {
+            fail("IOException occurred during loadFromFile: " + e.getMessage());
+        }
         
         // Should have loaded the tokens
         assertEquals(2, tokenHa.getQueueSize(), "Should have loaded 2 tokens");
@@ -253,7 +257,11 @@ public class DemoTest {
         // Now test loading with a fresh instance
         try (TokenHa loadTokenHa = new TokenHa()) {
             loadTokenHa.setPersistenceFilePath("overflow-test.json");
-            loadTokenHa.loadFromFile();
+            try {
+                loadTokenHa.loadFromFile();
+            } catch (java.io.IOException e) {
+                fail("IOException occurred during loadFromFile: " + e.getMessage());
+            }
             
             // Should have limited to maxTokens (10)
             assertTrue(loadTokenHa.getQueueSize() <= 10, "Should not exceed maxTokens after loading");
@@ -302,7 +310,11 @@ public class DemoTest {
         
         tokenHa = new TokenHa();
         tokenHa.setPersistenceFilePath(testFilePath);
-        tokenHa.loadFromFile();
+        try {
+            tokenHa.loadFromFile();
+        } catch (java.io.IOException e) {
+            fail("IOException occurred during loadFromFile: " + e.getMessage());
+        }
         
         assertEquals(originalJson, tokenHa.toJson(), "✅ Persistence and loading maintains data integrity");
         

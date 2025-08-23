@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
 import com.google.gson.Gson;
+import java.io.IOException;
 
 /**
  * A simple token handling utility class.
@@ -117,7 +118,7 @@ public class TokenHa implements AutoCloseable {
     /**
      * Load tokens from file if it exists and deserialize using Gson.
      */
-    public void loadFromFile() {
+    public void loadFromFile() throws IOException {
         String content = filePersistence.load();
         if (content != null) {
             System.out.println("Loaded content: " + content);
