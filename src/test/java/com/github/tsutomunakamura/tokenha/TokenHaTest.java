@@ -315,4 +315,7 @@ public class TokenHaTest {
         assertEquals(1, tokenHa.getQueueSize(), "Only one token should be in queue");
         assertEquals(token1, tokenHa.newestToken().getToken(), "Only first token should be present");
     }
+
+    // TODO: Test cases for "public boolean availableToAdd()"
+    
 }

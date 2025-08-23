@@ -15,14 +15,12 @@ import java.io.IOException;
  */
 public class TokenHa implements AutoCloseable {
 
-
-    private static final int DEFAUILT_EXPIREATION_TIME_SECONCDS = 60000; // Expiration time in milliseconds
-    private int numberOfLastTokens = 1; // Number of last tokens to keep
-    private int maxTokens = 10; // Maximum number of tokens to keep
-    private long coolTimeToAddMillis = 1000; // Time in milliseconds to wait before adding a new token
-    
-    // File path for persisting tokens
-    private String persistenceFilePath = "tokenha-data.json"; // Default file path
+    // Configuration parameters - now configurable
+    private final int expirationTimeSeconds;
+    private final int numberOfLastTokens;
+    private final int maxTokens;
+    private final long coolTimeToAddMillis;
+    private final String persistenceFilePath;
 
     private Deque<TokenElement> fifoQueue = new ArrayDeque<>();
     private FilePersistence filePersistence; // File persistence handler
@@ -30,8 +28,27 @@ public class TokenHa implements AutoCloseable {
     // Gson for JSON serialization/deserialization
     private static final Gson gson = new Gson();
     
-    // Constructor registers this instance with singleton eviction thread
+    /**
+     * Constructor with default configuration.
+     */
     public TokenHa() throws IOException {
+        this(TokenHaConfig.defaultConfig());
+    }
+    
+    /**
+     * Constructor with custom configuration.
+     */
+    public TokenHa(TokenHaConfig config) throws IOException {
+        if (config == null) {
+            throw new IllegalArgumentException("Configuration cannot be null");
+        }
+        
+        this.expirationTimeSeconds = config.getExpirationTimeSeconds();
+        this.numberOfLastTokens = config.getNumberOfLastTokens();
+        this.maxTokens = config.getMaxTokens();
+        this.coolTimeToAddMillis = config.getCoolTimeToAddMillis();
+        this.persistenceFilePath = config.getPersistenceFilePath();
+        
         EvictionThread.getInstance().register(this);
         filePersistence = new FilePersistence(persistenceFilePath);
     }
@@ -105,7 +122,7 @@ public class TokenHa implements AutoCloseable {
 
             // Get the oldest element
             TokenElement element = fifoQueue.peek();
-            if (element != null && (currentTime - element.getTimeMillis()) > DEFAUILT_EXPIREATION_TIME_SECONCDS) {
+            if (element != null && (currentTime - element.getTimeMillis()) > expirationTimeSeconds) {
                 expiredTokens.add(fifoQueue.poll());
             } else {
                 break;
@@ -151,10 +168,13 @@ public class TokenHa implements AutoCloseable {
     
     /**
      * Set the file path for persistence.
+     * Note: This method is deprecated. Use TokenHaConfig to set persistence file path during construction.
      * @param filePath the file path to use for saving/loading tokens
+     * @deprecated Use TokenHaConfig instead
      */
+    @Deprecated
     public void setPersistenceFilePath(String filePath) throws IOException {
-        this.persistenceFilePath = filePath;
+        // Only update the FilePersistence instance, not the field (which is final)
         filePersistence.setFilePath(filePath);
     }
     
