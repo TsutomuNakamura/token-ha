@@ -8,6 +8,8 @@ import java.util.List;
 
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+
 import java.io.IOException;
 
 /**
@@ -134,7 +136,7 @@ public class TokenHa implements AutoCloseable {
     /**
      * Load tokens from file if it exists and deserialize using Gson.
      */
-    public void loadFromFile() throws IOException {
+    public void loadFromFile() {
         String content = filePersistence.load();
         if (content != null) {
             System.out.println("Loaded content: " + content);
@@ -159,7 +161,7 @@ public class TokenHa implements AutoCloseable {
                     
                     System.out.println("Loaded " + fifoQueue.size() + " tokens from file");
                 }
-            } catch (Exception e) {
+            } catch (JsonSyntaxException e) {
                 System.err.println("Error parsing JSON with Gson: " + e.getMessage());
             }
         }

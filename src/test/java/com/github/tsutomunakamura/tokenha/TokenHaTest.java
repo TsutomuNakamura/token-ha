@@ -458,4 +458,19 @@ public class TokenHaTest {
     //     }
     // }
 
+    @Test
+    @DisplayName("loadFromFile should handle malformed JSON gracefully")
+    void loadFromFile_shouldHandleMalformedJson() throws Exception {
+        tokenHa.close();
+
+        // Write malformed JSON to the file
+        String malformedJson = "{ this is not valid JSON ";
+        java.nio.file.Files.writeString(java.nio.file.Paths.get("test-tokenha-data.json"), malformedJson);
+
+        // Create a new instance to load from the malformed file
+        try (TokenHa newTokenHa = new TokenHa(config)) {
+            newTokenHa.loadFromFile();
+            assertEquals(0, newTokenHa.getQueueSize(), "New instance should have 0 tokens when JSON is malformed");
+        }
+    }
 }
