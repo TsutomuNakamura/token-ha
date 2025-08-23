@@ -1,8 +1,13 @@
 package com.github.tsutomunakamura.tokenha;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.junit.jupiter.api.AfterEach;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test class for FilePersistence.
@@ -73,20 +78,6 @@ public class FilePersistenceTest {
     }
     
     @Test
-    public void testLoadFromNewFile() {
-        try (FilePersistence filePersistence = new FilePersistence("new-file.json")) {
-            currentTestInstance = filePersistence;
-            
-            // File gets created when FilePersistence is instantiated (for locking)
-            assertTrue(filePersistence.fileExists());
-            
-            // Load from new/empty file should return empty content
-            String loadedData = filePersistence.load();
-            assertNotNull(loadedData);
-            assertEquals("", loadedData); // Empty file returns empty string
-        }
-    }
-    @Test
     public void testSaveWritesDataToFile() {
         try (FilePersistence filePersistence = new FilePersistence(TEST_FILE)) {
             currentTestInstance = filePersistence;
@@ -133,6 +124,127 @@ public class FilePersistenceTest {
             assertThrows(IllegalStateException.class, () -> filePersistence.save("{\"tokens\":[]}"));
         } catch (Exception e) {
             fail("Exception should not be thrown during test setup: " + e.getMessage());
+        }
+    }
+
+    // Test cases for "public String load()"
+
+    @Test
+    public void testLoadFromExistingFile() {
+        try (FilePersistence filePersistence = new FilePersistence(TEST_FILE)) {
+            currentTestInstance = filePersistence;
+            
+            // First save some data
+            String testData = "{\"tokens\":[{\"token\":\"loadTest\",\"timeMillis\":1234567890}]}";
+            filePersistence.save(testData);
+            
+            // Then load it back
+            String loadedData = filePersistence.load();
+            assertNotNull(loadedData);
+            assertEquals(testData, loadedData);
+        }
+    }
+    
+    @Test
+    public void testLoadFromNonExistentFile() {
+        String nonExistentFile = "non-existent-file.json";
+        try (FilePersistence filePersistence = new FilePersistence(nonExistentFile)) {
+            currentTestInstance = filePersistence;
+            
+            // Delete the file to ensure it doesn't exist
+            filePersistence.deleteFile();
+            
+            // Load should return null for non-existent file
+            String loadedData = filePersistence.load();
+            assertEquals(null, loadedData);
+        }
+        
+        // Clean up
+        try {
+            java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(nonExistentFile));
+        } catch (java.io.IOException e) {
+            // Ignore cleanup error
+        }
+    }
+    
+    @Test
+    public void testLoadEmptyFile() {
+        try (FilePersistence filePersistence = new FilePersistence(TEST_FILE)) {
+            currentTestInstance = filePersistence;
+            
+            // Save empty string to create an empty file
+            filePersistence.save("");
+            
+            // Load should return empty string
+            String loadedData = filePersistence.load();
+            assertNotNull(loadedData);
+            assertEquals("", loadedData);
+        }
+    }
+    
+    @Test
+    public void testLoadWithIOException() {
+        // Test IOException handling by trying to load from an invalid/inaccessible path
+        String invalidPath = "/proc/invalid-path/test.json";
+        
+        // Create FilePersistence with invalid path should throw RuntimeException during initialization
+        assertThrows(RuntimeException.class, () -> {
+            new FilePersistence(invalidPath);
+        });
+    }
+    
+    @Test
+    public void testLoadLargeFile() {
+        try (FilePersistence filePersistence = new FilePersistence(TEST_FILE)) {
+            currentTestInstance = filePersistence;
+            
+            // Create and save a large JSON string
+            StringBuilder largeJson = new StringBuilder("{\"tokens\":[");
+            for (int i = 0; i < 1000; i++) {
+                if (i > 0) largeJson.append(",");
+                largeJson.append("{\"token\":\"token").append(i).append("\",\"timeMillis\":").append(System.currentTimeMillis() + i).append("}");
+            }
+            largeJson.append("]}");
+            
+            String largeData = largeJson.toString();
+            filePersistence.save(largeData);
+            
+            // Load and verify
+            String loadedData = filePersistence.load();
+            assertNotNull(loadedData);
+            assertEquals(largeData, loadedData);
+        }
+    }
+    
+    @Test
+    public void testLoadWithSpecialCharacters() {
+        try (FilePersistence filePersistence = new FilePersistence(TEST_FILE)) {
+            currentTestInstance = filePersistence;
+            
+            // Test with special characters including Unicode
+            String testData = "{\"tokens\":[{\"token\":\"测试token\",\"special\":\"!@#$%^&*()🚀\",\"timeMillis\":1234567890}]}";
+            filePersistence.save(testData);
+            
+            String loadedData = filePersistence.load();
+            assertNotNull(loadedData);
+            assertEquals(testData, loadedData);
+        }
+    }
+    
+    @Test
+    public void testLoadMultipleTimes() {
+        try (FilePersistence filePersistence = new FilePersistence(TEST_FILE)) {
+            currentTestInstance = filePersistence;
+            
+            String testData = "{\"tokens\":[{\"token\":\"multiLoad\",\"timeMillis\":1234567890}]}";
+            filePersistence.save(testData);
+            
+            // Load multiple times to ensure consistency
+            for (int i = 0; i < 5; i++) {
+                String loadedData = filePersistence.load();
+                assertNotNull(loadedData);
+                assertEquals(testData, loadedData);
+            }
         }
     }
 
