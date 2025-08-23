@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -267,5 +268,13 @@ public class FilePersistenceTest {
         }
     }
 
-        
+    // Add tests for "public String getFilePath()"
+
+    @Test
+    public void testGetFilePath() {
+        try (FilePersistence filePersistence = new FilePersistence(TEST_FILE)) {
+            String filePath = filePersistence.getFilePath();
+            assertEquals(TEST_FILE, filePath);
+        }
+    }
 }
