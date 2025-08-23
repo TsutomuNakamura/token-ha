@@ -18,22 +18,60 @@ import com.github.tsutomunakamura.tokenha.element.TokenElement;
  */
 public class EvictionThread {
     
-    // Singleton instance
-    private static final EvictionThread INSTANCE = new EvictionThread();
+    // Singleton instance - will be initialized with default config
+    private static volatile EvictionThread INSTANCE;
+    private static final Object LOCK = new Object();
     
     private ScheduledExecutorService executorService;
-    private static final long EVICTION_INITIAL_DELAY_MILLIS = 1000; // Start after 1000 milliseconds 
-    private static final long EVICTION_INTERVAL_MILLIS = 10000; // Run every 10000 milliseconds
+    private final EvictionThreadConfig config;
     
     // Registry of all TokenHa instances using WeakReferences for automatic cleanup
     private final Set<WeakReference<TokenHa>> registeredInstances = ConcurrentHashMap.newKeySet();
     
-    // Private constructor for singleton
-    private EvictionThread() {
+    // Private constructor for singleton with custom configuration
+    private EvictionThread(EvictionThreadConfig config) {
+        if (config == null) {
+            throw new IllegalArgumentException("Configuration cannot be null");
+        }
+        this.config = config;
     }
     
     public static EvictionThread getInstance() {
+        if (INSTANCE == null) {
+            synchronized (LOCK) {
+                if (INSTANCE == null) {
+                    INSTANCE = new EvictionThread(EvictionThreadConfig.defaultConfig());
+                }
+            }
+        }
         return INSTANCE;
+    }
+    
+    /**
+     * Get or create the singleton instance with custom configuration.
+     * This method should be called before any TokenHa instances are created.
+     * If the instance already exists, this method will return the existing instance
+     * and print a warning about configuration mismatch.
+     */
+    public static EvictionThread getInstance(EvictionThreadConfig config) {
+        if (INSTANCE == null) {
+            synchronized (LOCK) {
+                if (INSTANCE == null) {
+                    INSTANCE = new EvictionThread(config);
+                }
+            }
+        } else if (!INSTANCE.config.toString().equals(config.toString())) {
+            System.err.println("Warning: EvictionThread instance already exists with different configuration. " +
+                             "Using existing configuration: " + INSTANCE.config);
+        }
+        return INSTANCE;
+    }
+    
+    /**
+     * Get the current configuration.
+     */
+    public EvictionThreadConfig getConfig() {
+        return config;
     }
     
     public void register(TokenHa tokenHa) {
@@ -81,8 +119,8 @@ public class EvictionThread {
             executorService = Executors.newSingleThreadScheduledExecutor();
             executorService.scheduleAtFixedRate(
                 this::evictTokens,
-                EVICTION_INITIAL_DELAY_MILLIS,
-                EVICTION_INTERVAL_MILLIS,
+                config.getInitialDelayMillis(),
+                config.getIntervalMillis(),
                 TimeUnit.MILLISECONDS
             );
             System.out.println("Singleton eviction thread started at " + getCurrentTimeString());

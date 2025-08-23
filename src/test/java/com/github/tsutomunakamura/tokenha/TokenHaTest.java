@@ -22,7 +22,12 @@ import java.util.Iterator;
 public class TokenHaTest {
 
     private TokenHa tokenHa;
+    private EvictionThreadConfig evictionConfig = new EvictionThreadConfig.Builder()
+                                                .initialDelayMillis(500)
+                                                .intervalMillis(1000)
+                                                .build();
     private TokenHaConfig config = new TokenHaConfig.Builder()
+                                                .evictionThreadConfig(evictionConfig)
                                                 .maxTokens(3)
                                                 .coolTimeToAddMillis(1000)
                                                 .numberOfLastTokens(1)

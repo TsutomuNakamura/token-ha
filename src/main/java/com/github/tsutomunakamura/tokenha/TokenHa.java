@@ -49,7 +49,7 @@ public class TokenHa implements AutoCloseable {
         this.coolTimeToAddMillis = config.getCoolTimeToAddMillis();
         this.persistenceFilePath = config.getPersistenceFilePath();
         
-        EvictionThread.getInstance().register(this);
+        EvictionThread.getInstance(config.getEvictionThreadConfig()).register(this);
         filePersistence = new FilePersistence(persistenceFilePath);
     }
 

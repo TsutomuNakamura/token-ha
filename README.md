@@ -53,7 +53,10 @@ tokenHa.close();
 ### Key Features
 
 #### Automatic Eviction
-The singleton `EvictionThread` automatically removes expired tokens from all `TokenHa` instances. Tokens are kept for 60 seconds by default, with at least 1 token always preserved.
+The singleton `EvictionThread` automatically removes expired tokens from all `TokenHa` instances. The eviction timing is configurable through `EvictionThreadConfig`:
+- **Initial Delay**: How long to wait before first eviction run (default: 1000ms)
+- **Interval**: How often to run eviction checks (default: 10000ms)
+- At least 1 token is always preserved regardless of expiration
 
 #### Cooldown Management
 Prevents rapid token addition with a configurable cooldown period (default 1000ms).
@@ -65,11 +68,79 @@ Prevents rapid token addition with a configurable cooldown period (default 1000m
 
 ## Configuration
 
-Default settings:
+### Builder Pattern Configuration
+
+Use the `TokenHaConfig.Builder` for comprehensive configuration:
+
+```java
+TokenHaConfig config = new TokenHaConfig.Builder()
+    .maxTokens(20)
+    .expirationTimeMillis(30000)    // 30 seconds
+    .cooldownTimeMillis(2000)       // 2 seconds
+    .minTokensToKeep(2)
+    .persistenceFilePath("custom-tokens.json")
+    .build();
+
+TokenHa tokenHa = new TokenHa(config);
+```
+
+### Eviction Thread Configuration
+
+Configure the background eviction thread timing:
+
+```java
+EvictionThreadConfig evictionConfig = new EvictionThreadConfig.Builder()
+    .initialDelayMillis(500)     // Start after 500ms
+    .intervalMillis(5000)        // Run every 5 seconds
+    .build();
+
+TokenHaConfig config = new TokenHaConfig.Builder()
+    .evictionThreadConfig(evictionConfig)
+    .build();
+```
+
+### Properties File Configuration
+
+Create a `tokenha.properties` file:
+
+```properties
+tokenha.max.tokens=15
+tokenha.expiration.time.millis=45000
+tokenha.cooldown.time.millis=1500
+tokenha.min.tokens.to.keep=2
+tokenha.persistence.file.path=app-tokens.json
+tokenha.eviction.initial.delay.millis=1000
+tokenha.eviction.interval.millis=8000
+```
+
+Load configuration from properties:
+```java
+TokenHaConfig config = TokenHaConfig.fromProperties("tokenha.properties");
+```
+
+### Environment Variables Configuration
+
+Set environment variables with `TOKENHA_` prefix:
+
+```bash
+export TOKENHA_MAX_TOKENS=25
+export TOKENHA_EXPIRATION_TIME_MILLIS=60000
+export TOKENHA_EVICTION_INITIAL_DELAY_MILLIS=2000
+export TOKENHA_EVICTION_INTERVAL_MILLIS=15000
+```
+
+Load from environment:
+```java
+TokenHaConfig config = TokenHaConfig.fromEnvironment();
+```
+
+### Default Settings
 - **Max Tokens**: 10
-- **Expiration Time**: 60 seconds
+- **Expiration Time**: 60000ms (60 seconds)
 - **Cooldown Time**: 1000ms (1 second)
 - **Min Tokens to Keep**: 1
+- **Eviction Initial Delay**: 1000ms (1 second)
+- **Eviction Interval**: 10000ms (10 seconds)
 
 ## Thread Safety
 

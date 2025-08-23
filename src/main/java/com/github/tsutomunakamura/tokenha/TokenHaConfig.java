@@ -20,6 +20,7 @@ public class TokenHaConfig {
     private final int maxTokens;
     private final long coolTimeToAddMillis;
     private final String persistenceFilePath;
+    private final EvictionThreadConfig evictionThreadConfig;
     
     private TokenHaConfig(Builder builder) {
         this.expirationTimeMillis = builder.expirationTimeMillis;
@@ -27,6 +28,7 @@ public class TokenHaConfig {
         this.maxTokens = builder.maxTokens;
         this.coolTimeToAddMillis = builder.coolTimeToAddMillis;
         this.persistenceFilePath = builder.persistenceFilePath;
+        this.evictionThreadConfig = builder.evictionThreadConfig;
     }
     
     // Getters
@@ -35,6 +37,7 @@ public class TokenHaConfig {
     public int getMaxTokens() { return maxTokens; }
     public long getCoolTimeToAddMillis() { return coolTimeToAddMillis; }
     public String getPersistenceFilePath() { return persistenceFilePath; }
+    public EvictionThreadConfig getEvictionThreadConfig() { return evictionThreadConfig; }
     
     /**
      * Create a default configuration.
@@ -52,7 +55,8 @@ public class TokenHaConfig {
             .numberOfLastTokens(this.numberOfLastTokens)
             .maxTokens(this.maxTokens)
             .coolTimeToAddMillis(this.coolTimeToAddMillis)
-            .persistenceFilePath(this.persistenceFilePath);
+            .persistenceFilePath(this.persistenceFilePath)
+            .evictionThreadConfig(this.evictionThreadConfig);
     }
     
     /**
@@ -67,6 +71,9 @@ public class TokenHaConfig {
         int maxTokens = getIntProperty(properties, "tokenha.max.tokens", DEFAULT_MAX_TOKENS);
         long coolTime = getLongProperty(properties, "tokenha.cool.time.millis", DEFAULT_COOL_TIME_MILLIS);
         String filePath = properties.getProperty("tokenha.persistence.file.path", DEFAULT_PERSISTENCE_FILE_PATH);
+        
+        // Load eviction thread configuration from properties
+        EvictionThreadConfig evictionConfig = EvictionThreadConfig.fromProperties(properties);
         
         // Apply values with validation - use defaults if validation fails
         try {
@@ -104,6 +111,13 @@ public class TokenHaConfig {
             builder.persistenceFilePath(DEFAULT_PERSISTENCE_FILE_PATH);
         }
         
+        try {
+            builder.evictionThreadConfig(evictionConfig);
+        } catch (IllegalArgumentException e) {
+            System.err.println("Invalid eviction thread config, using default");
+            builder.evictionThreadConfig(EvictionThreadConfig.defaultConfig());
+        }
+        
         return builder.build();
     }
     
@@ -119,6 +133,9 @@ public class TokenHaConfig {
         int maxTokens = getIntEnv("TOKENHA_MAX_TOKENS", DEFAULT_MAX_TOKENS);
         long coolTime = getLongEnv("TOKENHA_COOL_TIME_MILLIS", DEFAULT_COOL_TIME_MILLIS);
         String filePath = System.getenv().getOrDefault("TOKENHA_PERSISTENCE_FILE_PATH", DEFAULT_PERSISTENCE_FILE_PATH);
+        
+        // Load eviction thread configuration from environment
+        EvictionThreadConfig evictionConfig = EvictionThreadConfig.fromEnvironment();
         
         // Apply values with validation - use defaults if validation fails
         try {
@@ -156,6 +173,13 @@ public class TokenHaConfig {
             builder.persistenceFilePath(DEFAULT_PERSISTENCE_FILE_PATH);
         }
         
+        try {
+            builder.evictionThreadConfig(evictionConfig);
+        } catch (IllegalArgumentException e) {
+            System.err.println("Invalid eviction thread config from env, using default");
+            builder.evictionThreadConfig(EvictionThreadConfig.defaultConfig());
+        }
+        
         return builder.build();
     }
     
@@ -168,6 +192,7 @@ public class TokenHaConfig {
         private int maxTokens = DEFAULT_MAX_TOKENS;
         private long coolTimeToAddMillis = DEFAULT_COOL_TIME_MILLIS;
         private String persistenceFilePath = DEFAULT_PERSISTENCE_FILE_PATH;
+        private EvictionThreadConfig evictionThreadConfig = EvictionThreadConfig.defaultConfig();
         
         public Builder expirationTimeMillis(int expirationTimeMillis) {
             if (expirationTimeMillis <= 0) {
@@ -206,6 +231,14 @@ public class TokenHaConfig {
                 throw new IllegalArgumentException("Persistence file path cannot be null or empty");
             }
             this.persistenceFilePath = persistenceFilePath;
+            return this;
+        }
+        
+        public Builder evictionThreadConfig(EvictionThreadConfig evictionThreadConfig) {
+            if (evictionThreadConfig == null) {
+                throw new IllegalArgumentException("Eviction thread configuration cannot be null");
+            }
+            this.evictionThreadConfig = evictionThreadConfig;
             return this;
         }
         
@@ -275,6 +308,7 @@ public class TokenHaConfig {
                 ", maxTokens=" + maxTokens +
                 ", coolTimeToAddMillis=" + coolTimeToAddMillis +
                 ", persistenceFilePath='" + persistenceFilePath + '\'' +
+                ", evictionThreadConfig=" + evictionThreadConfig +
                 '}';
     }
 }
