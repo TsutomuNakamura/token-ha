@@ -31,7 +31,7 @@ public class TokenHaTest {
                                                 .maxTokens(3)
                                                 .coolTimeToAddMillis(1000)
                                                 .numberOfLastTokens(1)
-                                                .expirationTimeMillis(60000)
+                                                .expirationTimeMillis(10000)
                                                 .persistenceFilePath("test-tokenha-data.json")
                                                 .build();
     
@@ -359,5 +359,30 @@ public class TokenHaTest {
         tokenHa.addIfAvailable(token);
         // Immediately check availability (cool time not passed)
         assertFalse(tokenHa.availableToAdd(), "Should not be available to add due to cool time");
+    }
+
+    // Test cases for "public List<TokenElement> evictExpiredTokens()"
+    @Test
+    @DisplayName("evictExpiredTokens should remove expired tokens and return them")
+    void evictExpiredTokens_shouldRemoveExpiredTokens() throws Exception {
+        tokenHa.addIfAvailable("token-1");
+
+        assertEquals(1, tokenHa.getQueueSize(), "Should have 1 tokens before eviction");
+        assertEquals("token-1", tokenHa.newestToken().getToken(), "Newest token should be token-1");
+
+        Thread.sleep(5000); // Wait 5 seconds
+        tokenHa.addIfAvailable("token-2");
+
+        assertEquals(2, tokenHa.getQueueSize(), "Should have 2 tokens before eviction");
+        assertEquals("token-2", tokenHa.newestToken().getToken(), "Newest token should be token-2");
+
+        Iterator<TokenElement> descIterator = tokenHa.getDescIterator();
+        assertEquals("token-2", descIterator.next().getToken(), "First element of desc iterator should be token-2");
+        assertEquals("token-1", descIterator.next().getToken(), "Second element of desc iterator should be token-1");
+
+        Thread.sleep(8000); // Wait 8 seconds (total 13 seconds since token-1 added)
+
+        assertEquals(1, tokenHa.getQueueSize(), "Should still have 1 tokens after eviction");
+        assertEquals("token-2", tokenHa.newestToken().getToken(), "Newest token should be token-2");
     }
 }
