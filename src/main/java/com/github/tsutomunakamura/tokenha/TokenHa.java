@@ -114,7 +114,6 @@ public class TokenHa implements AutoCloseable {
 
         long currentTime = System.currentTimeMillis();
         while (!fifoQueue.isEmpty()) {
-
             if (fifoQueue.size() <= numberOfLastTokens) {
                 // Do not remove if we have only the last tokens left
                 break;

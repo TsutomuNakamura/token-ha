@@ -61,6 +61,8 @@ public class FilePersistence implements AutoCloseable {
                 throw new IOException("Failed to acquire file lock");
             } else {
                 System.out.println("Acquired exclusive lock for persistence file: " + filePath);
+                System.out.println("Working directory: " + System.getProperty("user.dir"));
+                System.out.println("Absolute file path: " + Paths.get(filePath).toAbsolutePath());
             }
         } catch (IOException e) {
             System.err.println("Failed to initialize persistence file: " + filePath + ". Error: " + e.getMessage());
@@ -107,8 +109,12 @@ public class FilePersistence implements AutoCloseable {
         if (fileLock == null) {
             System.err.println("Warning: Saving without file lock. Data may be corrupted by concurrent access.");
         }
-        
+
         try {
+            // Print the full path of the file for debugging
+            System.out.println("%%%%%%%%%%%%%%% Working directory: " + System.getProperty("user.dir"));
+            System.out.println("%%%%%%%%%%%%%%% Saving data to file: " + Paths.get(filePath).toAbsolutePath());
+
             // Reset file position to beginning and truncate
             persistenceFile.seek(0);
             persistenceFile.setLength(0);
@@ -119,9 +125,12 @@ public class FilePersistence implements AutoCloseable {
             // Force data to be written to disk immediately (flush)
             persistenceFile.getFD().sync();
             
+            System.out.println("File saved successfully. Size: " + persistenceFile.length() + " bytes");
+            
         } catch (IOException e) {
             System.err.println("Failed to save data to file: " + filePath + 
                              ". Error: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     

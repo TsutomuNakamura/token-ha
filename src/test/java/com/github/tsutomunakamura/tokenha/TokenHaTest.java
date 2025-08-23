@@ -1,19 +1,23 @@
 package com.github.tsutomunakamura.tokenha;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.github.tsutomunakamura.tokenha.element.TokenElement;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Iterator;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
 /**
  * Test class for TokenHa.
@@ -23,8 +27,8 @@ public class TokenHaTest {
 
     private TokenHa tokenHa;
     private EvictionThreadConfig evictionConfig = new EvictionThreadConfig.Builder()
-                                                .initialDelayMillis(500)
-                                                .intervalMillis(1000)
+                                                .initialDelayMillis(100)
+                                                .intervalMillis(500)
                                                 .build();
     private TokenHaConfig config = new TokenHaConfig.Builder()
                                                 .evictionThreadConfig(evictionConfig)
@@ -397,9 +401,49 @@ public class TokenHaTest {
 
         assertEquals(3, tokenHa.getQueueSize(), "Should have 3 tokens before eviction");
 
-        Thread.sleep(15000); // Wait 15 seconds to ensure all tokens are expired
+        Thread.sleep(20000); // Wait 16 seconds to ensure all tokens are expired
 
         assertEquals(1, tokenHa.getQueueSize(), "Should still have 1 token after eviction due to numberOfLastTokens=1");
         assertEquals("token-3", tokenHa.newestToken().getToken(), "Newest token should be token-3");
+    }
+
+    // Test cases for "public void loadFromFile() throws IOException"
+
+    @Test
+    @DisplayName("loadFromFile should load tokens from existing file")
+    void loadFromFile_shouldLoadTokensFromFile() throws Exception {
+        tokenHa.deletePersistenceFile();
+        tokenHa.close();
+        // Thread.sleep(2000);
+        // tokenHa.addIfAvailable("token-1");
+        // Thread.sleep(1100);
+        // tokenHa.addIfAvailable("token-2");
+        // // Thread.sleep(10000000);
+
+        String json = """
+          {
+            "tokens" : [
+              {"token":"token-3","timeMillis":%d},
+              {"token":"token-4","timeMillis":%d}
+            ]
+          }
+        """.formatted(System.currentTimeMillis() - 10000, System.currentTimeMillis());
+
+        // Write json to the file test-tokenha-data.json
+        java.nio.file.Files.writeString(java.nio.file.Paths.get("test-tokenha-data.json"), json);
+        
+        // Create a new instance to load from the file
+        try (TokenHa newTokenHa = new TokenHa(config);) {
+            newTokenHa.loadFromFile();
+
+            assertEquals(2, newTokenHa.getQueueSize(), "New instance should load 2 tokens from file");
+            Iterator<TokenElement> iterator = newTokenHa.getDescIterator();
+            assertEquals("token-4", iterator.next().getToken(), "First token should be token-4");
+            assertEquals("token-3", iterator.next().getToken(), "Second token should be token-3");
+            Thread.sleep(13000);
+
+            assertEquals(1, newTokenHa.getQueueSize(), "New instance should load 1 tokens from file");
+            assertEquals("token-4", newTokenHa.newestToken().getToken(), "Remaining token should be token-4");
+        }
     }
 }
