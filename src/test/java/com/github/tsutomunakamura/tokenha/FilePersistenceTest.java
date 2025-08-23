@@ -42,6 +42,8 @@ public class FilePersistenceTest {
         }
     }
 
+    // Tests for "public FilePersistence()"
+
     @Test
     public void testConstructor() {
         try (FilePersistence filePersistence = new FilePersistence()) {
