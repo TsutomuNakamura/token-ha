@@ -16,7 +16,7 @@ import java.io.IOException;
 public class TokenHa implements AutoCloseable {
 
 
-    private static final int DEFAUILT_EXPIREATION_TIME_SECONCDS = 60; // Expiration time in seconds
+    private static final int DEFAUILT_EXPIREATION_TIME_SECONCDS = 60000; // Expiration time in milliseconds
     private int numberOfLastTokens = 1; // Number of last tokens to keep
     private int maxTokens = 10; // Maximum number of tokens to keep
     private long coolTimeToAddMillis = 1000; // Time in milliseconds to wait before adding a new token
@@ -105,7 +105,7 @@ public class TokenHa implements AutoCloseable {
 
             // Get the oldest element
             TokenElement element = fifoQueue.peek();
-            if (element != null && (currentTime - element.getTimeMillis()) / 1000 > DEFAUILT_EXPIREATION_TIME_SECONCDS) {
+            if (element != null && (currentTime - element.getTimeMillis()) > DEFAUILT_EXPIREATION_TIME_SECONCDS) {
                 expiredTokens.add(fifoQueue.poll());
             } else {
                 break;
