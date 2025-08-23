@@ -22,7 +22,7 @@ public class EvictionThread {
     private static final EvictionThread INSTANCE = new EvictionThread();
     
     private ScheduledExecutorService executorService;
-    private static final long EVICTION_INTERVAL_SECONDS = 10; // Run every 10 seconds
+    private static final long EVICTION_INTERVAL_MILLIS = 10000; // Run every 10000 milliseconds
     
     // Registry of all TokenHa instances using WeakReferences for automatic cleanup
     private final Set<WeakReference<TokenHa>> registeredInstances = ConcurrentHashMap.newKeySet();
@@ -80,9 +80,9 @@ public class EvictionThread {
             executorService = Executors.newSingleThreadScheduledExecutor();
             executorService.scheduleAtFixedRate(
                 this::evictTokens,
-                EVICTION_INTERVAL_SECONDS,
-                EVICTION_INTERVAL_SECONDS,
-                TimeUnit.SECONDS
+                0,
+                EVICTION_INTERVAL_MILLIS,
+                TimeUnit.MILLISECONDS
             );
             System.out.println("Singleton eviction thread started at " + getCurrentTimeString());
         }
