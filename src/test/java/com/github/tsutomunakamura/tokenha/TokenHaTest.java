@@ -317,5 +317,37 @@ public class TokenHaTest {
     }
 
     // TODO: Test cases for "public boolean availableToAdd()"
-    
+    @Test
+    @DisplayName("availableToAdd should return true when queue is not full and cool time has passed")
+    void availableToAdd_shouldReturnTrue_whenQueueNotFullAndCoolTimePassed() {
+        // Given
+        String token = "test-token";
+        tokenHa.addIfAvailable(token);
+        // Wait for cool time to pass
+        try { Thread.sleep(1100); } catch (InterruptedException e) { }
+        assertTrue(tokenHa.availableToAdd(), "Should be available to add");
+    }
+
+    @Test
+    @DisplayName("availableToAdd should return false when queue is full")
+    void availableToAdd_shouldReturnFalse_whenQueueIsFull() {
+        // Given - fill the queue to maximum capacity (maxTokens = 10)
+        for (int i = 1; i <= 10; i++) {
+            tokenHa.addIfAvailable("token-" + i);
+            if (i < 10) {
+                try { Thread.sleep(1100); } catch (InterruptedException e) { }
+            }
+        }
+        assertFalse(tokenHa.availableToAdd(), "Should not be available to add when queue is full");
+    }
+
+    @Test
+    @DisplayName("availableToAdd should return false when cool time has not passed")
+    void availableToAdd_shouldReturnFalse_whenCoolTimeNotPassed() {
+        // Given
+        String token = "test-token";
+        tokenHa.addIfAvailable(token);
+        // Immediately check availability (cool time not passed)
+        assertFalse(tokenHa.availableToAdd(), "Should not be available to add due to cool time");
+    }
 }
