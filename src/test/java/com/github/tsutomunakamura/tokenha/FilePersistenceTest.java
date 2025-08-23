@@ -41,6 +41,14 @@ public class FilePersistenceTest {
             System.err.println("Failed to delete test file: " + e.getMessage());
         }
     }
+
+    @Test
+    public void testConstructor() {
+        try (FilePersistence filePersistence = new FilePersistence()) {
+            currentTestInstance = filePersistence;
+            assertTrue(filePersistence.fileExists(), "File should be created by constructor");
+        }
+    }
     
     @Test
     public void testSaveAndLoad() {
