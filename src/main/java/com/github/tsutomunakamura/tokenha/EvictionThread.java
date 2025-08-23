@@ -22,6 +22,7 @@ public class EvictionThread {
     private static final EvictionThread INSTANCE = new EvictionThread();
     
     private ScheduledExecutorService executorService;
+    private static final long EVICTION_INITIAL_DELAY_MILLIS = 1000; // Start after 1000 milliseconds 
     private static final long EVICTION_INTERVAL_MILLIS = 10000; // Run every 10000 milliseconds
     
     // Registry of all TokenHa instances using WeakReferences for automatic cleanup
@@ -80,7 +81,7 @@ public class EvictionThread {
             executorService = Executors.newSingleThreadScheduledExecutor();
             executorService.scheduleAtFixedRate(
                 this::evictTokens,
-                0,
+                EVICTION_INITIAL_DELAY_MILLIS,
                 EVICTION_INTERVAL_MILLIS,
                 TimeUnit.MILLISECONDS
             );
