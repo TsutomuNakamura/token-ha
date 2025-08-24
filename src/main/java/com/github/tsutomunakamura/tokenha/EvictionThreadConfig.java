@@ -43,12 +43,12 @@ public class EvictionThreadConfig {
     /**
      * Load configuration from properties file or system properties.
      */
-    public static EvictionThreadConfig fromProperties(Properties properties) {
+    public static EvictionThreadConfig fromProperties(Properties props) {
         Builder builder = new Builder();
         
         // Use helper methods that handle invalid values gracefully
-        long initialDelay = getLongProperty(properties, "tokenha.eviction.initial.delay.millis", DEFAULT_INITIAL_DELAY_MILLIS);
-        long interval = getLongProperty(properties, "tokenha.eviction.interval.millis", DEFAULT_INTERVAL_MILLIS);
+        long initialDelay = getLongProperty(props, "tokenha.eviction.initial.delay.millis", DEFAULT_INITIAL_DELAY_MILLIS);
+        long interval = getLongProperty(props, "tokenha.eviction.interval.millis", DEFAULT_INTERVAL_MILLIS);
         
         // Apply values with validation - use defaults if validation fails
         try {
