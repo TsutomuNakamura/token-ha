@@ -1,11 +1,16 @@
 package com.github.tsutomunakamura.tokenha;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mockStatic;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 public class TokenHaConfigTest {
 
@@ -53,7 +58,19 @@ public class TokenHaConfigTest {
         props.setProperty("tokenha.max.tokens", "0");
         props.setProperty("tokenha.cool.time.millis", "-1");
         props.setProperty("tokenha.persistence.file.path", "");
-        
+
+        // Before mocking, get the default EvictionThreadConfig prevent null pointer
+        EvictionThreadConfig evictionConfig = EvictionThreadConfig.defaultConfig();
+
+        // Create a mock to return null when EvictionThreadConfig.fromProperties(properties) has called
+        MockedStatic<EvictionThreadConfig> mockedEvictionThreadConfig = mockStatic(EvictionThreadConfig.class);
+        mockedEvictionThreadConfig
+            .when(() -> EvictionThreadConfig.fromProperties(props))
+            .thenReturn(null);
+        mockedEvictionThreadConfig
+            .when(EvictionThreadConfig::defaultConfig)
+            .thenReturn(evictionConfig);
+         
         TokenHaConfig config = TokenHaConfig.fromProperties(props);
 
         try {
@@ -78,4 +95,7 @@ public class TokenHaConfigTest {
             assert false : "Failed to access defaulit values via reflection";
         }
     }
+
+    // Test cases for fromEnvironment() method
+    
 }
