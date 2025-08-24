@@ -111,10 +111,6 @@ public class FilePersistence implements AutoCloseable {
         }
 
         try {
-            // Print the full path of the file for debugging
-            System.out.println("%%%%%%%%%%%%%%% Working directory: " + System.getProperty("user.dir"));
-            System.out.println("%%%%%%%%%%%%%%% Saving data to file: " + Paths.get(filePath).toAbsolutePath());
-
             // Reset file position to beginning and truncate
             persistenceFile.seek(0);
             persistenceFile.setLength(0);

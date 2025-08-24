@@ -473,4 +473,40 @@ public class TokenHaTest {
             assertEquals(0, newTokenHa.getQueueSize(), "New instance should have 0 tokens when JSON is malformed");
         }
     }
+
+    @Test
+    @DisplayName("loadFromFile should remove oldest tokens if loaded tokens exceed maxTokens")
+    void loadFromFile_shouldRemoveOldestIfExceedMaxTokens() throws Exception {
+        tokenHa.close();
+
+        String json = """
+          {
+            "tokens" : [
+              {"token":"token-1","timeMillis":%d},
+              {"token":"token-2","timeMillis":%d},
+              {"token":"token-3","timeMillis":%d},
+              {"token":"token-4","timeMillis":%d}
+            ]
+          }
+        """.formatted(
+            System.currentTimeMillis() - 3000,
+            System.currentTimeMillis() - 2000,
+            System.currentTimeMillis() - 1000,
+            System.currentTimeMillis()
+        );
+
+        // Write json to the file test-tokenha-data.json
+        java.nio.file.Files.writeString(java.nio.file.Paths.get("test-tokenha-data.json"), json);
+        
+        // Create a new instance to load from the file
+        try (TokenHa newTokenHa = new TokenHa(config);) {
+            newTokenHa.loadFromFile();
+
+            assertEquals(3, newTokenHa.getQueueSize(), "New instance should load only maxTokens (3) from file");
+            Iterator<TokenElement> iterator = newTokenHa.getDescIterator();
+            assertEquals("token-4", iterator.next().getToken(), "First token should be token-4");
+            assertEquals("token-3", iterator.next().getToken(), "Second token should be token-3");
+            assertEquals("token-2", iterator.next().getToken(), "Third token should be token-2");
+        }
+    }
 }

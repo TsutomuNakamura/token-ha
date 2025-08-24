@@ -136,7 +136,7 @@ public class TokenHa implements AutoCloseable {
     /**
      * Load tokens from file if it exists and deserialize using Gson.
      */
-    public void loadFromFile() {
+    public void loadFromFile() throws IOException {
         String content = filePersistence.load();
         if (content != null) {
             System.out.println("Loaded content: " + content);
@@ -208,13 +208,8 @@ public class TokenHa implements AutoCloseable {
      * @return JSON string representation of tokens
      */
     public String toJson() {
-        try {
-            List<TokenElement> tokenList = new ArrayList<>(fifoQueue);
-            TokenData data = new TokenData(tokenList);
-            return gson.toJson(data);
-        } catch (Exception e) {
-            System.err.println("Error serializing to JSON: " + e.getMessage());
-            return "{\"tokens\":[]}";
-        }
+        List<TokenElement> tokenList = new ArrayList<>(fifoQueue);
+        TokenData data = new TokenData(tokenList);
+        return gson.toJson(data);
     }
 }
