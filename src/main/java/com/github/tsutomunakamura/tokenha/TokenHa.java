@@ -18,7 +18,7 @@ import java.io.IOException;
 public class TokenHa implements AutoCloseable {
 
     // Configuration parameters - now configurable
-    private final int expirationTimeMillis;
+    private final long expirationTimeMillis;
     private final int numberOfLastTokens;
     private final int maxTokens;
     private final long coolTimeToAddMillis;

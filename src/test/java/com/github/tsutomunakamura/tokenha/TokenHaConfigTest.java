@@ -85,7 +85,7 @@ public class TokenHaConfigTest {
             Field fieldPersistenceFilePath = TokenHaConfig.class.getDeclaredField("DEFAULT_PERSISTENCE_FILE_PATH");
             fieldPersistenceFilePath.setAccessible(true);
 
-            assertEquals(fieldExpirationTime.getInt(null), config.getExpirationTimeMillis());
+            assertEquals(fieldExpirationTime.getLong(null), config.getExpirationTimeMillis());
             assertEquals(fieldNumberOfLastTokens.getInt(null), config.getNumberOfLastTokens());
             assertEquals(fieldMaxTokens.getInt(null), config.getMaxTokens());
             assertEquals(fieldCoolTimeMillis.getLong(null), config.getCoolTimeToAddMillis());
@@ -97,5 +97,5 @@ public class TokenHaConfigTest {
     }
 
     // Test cases for fromEnvironment() method
-    
+
 }

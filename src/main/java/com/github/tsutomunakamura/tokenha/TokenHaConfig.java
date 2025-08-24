@@ -9,13 +9,13 @@ import java.util.Properties;
 public class TokenHaConfig {
     
     // Default values
-    private static final int DEFAULT_EXPIRATION_TIME_MILLIS = 60000;
+    private static final long DEFAULT_EXPIRATION_TIME_MILLIS = 60000L;
     private static final int DEFAULT_NUMBER_OF_LAST_TOKENS = 1;
     private static final int DEFAULT_MAX_TOKENS = 10;
     private static final long DEFAULT_COOL_TIME_MILLIS = 1000;
     private static final String DEFAULT_PERSISTENCE_FILE_PATH = "tokenha-data.json";
     
-    private final int expirationTimeMillis;
+    private final long expirationTimeMillis;
     private final int numberOfLastTokens;
     private final int maxTokens;
     private final long coolTimeToAddMillis;
@@ -32,7 +32,7 @@ public class TokenHaConfig {
     }
     
     // Getters
-    public int getExpirationTimeMillis() { return expirationTimeMillis; }
+    public long getExpirationTimeMillis() { return expirationTimeMillis; }
     public int getNumberOfLastTokens() { return numberOfLastTokens; }
     public int getMaxTokens() { return maxTokens; }
     public long getCoolTimeToAddMillis() { return coolTimeToAddMillis; }
@@ -66,7 +66,7 @@ public class TokenHaConfig {
         Builder builder = new Builder();
         
         // Use helper methods that handle invalid values gracefully
-        int expirationTime = getIntProperty(properties, "tokenha.expiration.time.millis", DEFAULT_EXPIRATION_TIME_MILLIS);
+        long expirationTime = getLongProperty(properties, "tokenha.expiration.time.millis", DEFAULT_EXPIRATION_TIME_MILLIS);
         int numberOfLastTokens = getIntProperty(properties, "tokenha.number.of.last.tokens", DEFAULT_NUMBER_OF_LAST_TOKENS);
         int maxTokens = getIntProperty(properties, "tokenha.max.tokens", DEFAULT_MAX_TOKENS);
         long coolTime = getLongProperty(properties, "tokenha.cool.time.millis", DEFAULT_COOL_TIME_MILLIS);
@@ -128,7 +128,7 @@ public class TokenHaConfig {
         Builder builder = new Builder();
         
         // Use helper methods that handle invalid values gracefully
-        int expirationTime = getIntEnv("TOKENHA_EXPIRATION_TIME_MILLIS", DEFAULT_EXPIRATION_TIME_MILLIS);
+        long expirationTime = getLongEnv("TOKENHA_EXPIRATION_TIME_MILLIS", DEFAULT_EXPIRATION_TIME_MILLIS);
         int numberOfLastTokens = getIntEnv("TOKENHA_NUMBER_OF_LAST_TOKENS", DEFAULT_NUMBER_OF_LAST_TOKENS);
         int maxTokens = getIntEnv("TOKENHA_MAX_TOKENS", DEFAULT_MAX_TOKENS);
         long coolTime = getLongEnv("TOKENHA_COOL_TIME_MILLIS", DEFAULT_COOL_TIME_MILLIS);
@@ -187,14 +187,14 @@ public class TokenHaConfig {
      * Builder pattern for programmatic configuration.
      */
     public static class Builder {
-        private int expirationTimeMillis = DEFAULT_EXPIRATION_TIME_MILLIS;
+        private long expirationTimeMillis = DEFAULT_EXPIRATION_TIME_MILLIS;
         private int numberOfLastTokens = DEFAULT_NUMBER_OF_LAST_TOKENS;
         private int maxTokens = DEFAULT_MAX_TOKENS;
         private long coolTimeToAddMillis = DEFAULT_COOL_TIME_MILLIS;
         private String persistenceFilePath = DEFAULT_PERSISTENCE_FILE_PATH;
         private EvictionThreadConfig evictionThreadConfig = EvictionThreadConfig.defaultConfig();
         
-        public Builder expirationTimeMillis(int expirationTimeMillis) {
+        public Builder expirationTimeMillis(long expirationTimeMillis) {
             if (expirationTimeMillis <= 0) {
                 throw new IllegalArgumentException("Expiration time must be positive");
             }
