@@ -12,7 +12,7 @@ public class TokenHaConfig {
     private static final long DEFAULT_EXPIRATION_TIME_MILLIS = 60000L;
     private static final int DEFAULT_NUMBER_OF_LAST_TOKENS = 1;
     private static final int DEFAULT_MAX_TOKENS = 10;
-    private static final long DEFAULT_COOL_TIME_MILLIS = 1000;
+    private static final long DEFAULT_COOL_TIME_MILLIS = 1000L;
     private static final String DEFAULT_PERSISTENCE_FILE_PATH = "tokenha-data.json";
     
     private final long expirationTimeMillis;
@@ -132,7 +132,8 @@ public class TokenHaConfig {
         int numberOfLastTokens = getIntEnv("TOKENHA_NUMBER_OF_LAST_TOKENS", DEFAULT_NUMBER_OF_LAST_TOKENS);
         int maxTokens = getIntEnv("TOKENHA_MAX_TOKENS", DEFAULT_MAX_TOKENS);
         long coolTime = getLongEnv("TOKENHA_COOL_TIME_MILLIS", DEFAULT_COOL_TIME_MILLIS);
-        String filePath = System.getenv().getOrDefault("TOKENHA_PERSISTENCE_FILE_PATH", DEFAULT_PERSISTENCE_FILE_PATH);
+        //String filePath = System.getenv().getOrDefault("TOKENHA_PERSISTENCE_FILE_PATH", DEFAULT_PERSISTENCE_FILE_PATH);
+        String filePath = getEnv("TOKENHA_PERSISTENCE_FILE_PATH", DEFAULT_PERSISTENCE_FILE_PATH);
         
         // Load eviction thread configuration from environment
         EvictionThreadConfig evictionConfig = EvictionThreadConfig.fromEnvironment();
@@ -276,7 +277,7 @@ public class TokenHaConfig {
         return defaultValue;
     }
     
-    private static int getIntEnv(String key, int defaultValue) {
+    public static int getIntEnv(String key, int defaultValue) {
         String value = System.getenv(key);
         if (value != null) {
             try {
@@ -288,7 +289,7 @@ public class TokenHaConfig {
         return defaultValue;
     }
     
-    private static long getLongEnv(String key, long defaultValue) {
+    public static long getLongEnv(String key, long defaultValue) {
         String value = System.getenv(key);
         if (value != null) {
             try {
@@ -298,6 +299,10 @@ public class TokenHaConfig {
             }
         }
         return defaultValue;
+    }
+
+    public static String getEnv(String key, String defaultValue) {
+        return System.getenv().getOrDefault(key, defaultValue);
     }
     
     @Override

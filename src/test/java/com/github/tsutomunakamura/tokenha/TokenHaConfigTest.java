@@ -2,6 +2,8 @@ package com.github.tsutomunakamura.tokenha;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
 
 import java.lang.reflect.Field;
@@ -10,10 +12,20 @@ import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.mockito.MockedStatic;
 
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
+
+@ExtendWith(SystemStubsExtension.class)
 public class TokenHaConfigTest {
 
+    @SystemStub
+    private EnvironmentVariables environmentVariables;
+    
     // Test cases for toBuilder() method
 
     @Test
@@ -97,5 +109,71 @@ public class TokenHaConfigTest {
     }
 
     // Test cases for fromEnvironment() method
+
+    // @Test
+    // @DisplayName("fromEnvironment() should use mocked environment variables")
+    // void testFromEnvironmentWithMocking() {
+    //     // Use Mockito to mock static method calls for better testing
+
+    //     environmentVariables.set("TOKENHA_EXPIRATION_TIME_MILLIS", "120000");
+
+    //     try (MockedStatic<TokenHaConfig> mockedTokenHaConfig = mockStatic(TokenHaConfig.class)) {
+
+    //         // Create a config with specific values to test
+    //         TokenHaConfig expectedConfig = new TokenHaConfig.Builder()
+    //             .expirationTimeMillis(120000)
+    //             .numberOfLastTokens(3)
+    //             .maxTokens(15)
+    //             .coolTimeToAddMillis(500)
+    //             .persistenceFilePath("env-tokens.json")
+    //             .evictionThreadConfig(new EvictionThreadConfig.Builder()
+    //                 .initialDelayMillis(2000)
+    //                 .intervalMillis(20000)
+    //                 .build())
+    //             .build();
+            
+    //         TokenHaConfig.fromEnvironment();
+            
+    //         // Test the mocked behavior
+    //         TokenHaConfig config = TokenHaConfig.fromEnvironment();
+    //         assertEquals(120000, config.getExpirationTimeMillis());
+    //         // assertEquals(3, config.getNumberOfLastTokens());
+    //         // assertEquals(15, config.getMaxTokens());
+    //         // assertEquals(500, config.getCoolTimeToAddMillis());
+    //         // assertEquals("env-tokens.json", config.getPersistenceFilePath());
+            
+    //         // // Test eviction thread config
+    //         // EvictionThreadConfig evictionConfig = config.getEvictionThreadConfig();
+    //         // assertEquals(2000, evictionConfig.getInitialDelayMillis());
+    //         // assertEquals(20000, evictionConfig.getIntervalMillis());
+    //     }
+    // }
+
+
+
+    @Test
+    @DisplayName("fromEnvironment() should use mocked environment variables")
+    void testFromEnvironmentWithMocking() {
+        // Fake environment variables by using SystemStubs.
+        // https://www.baeldung.com/java-system-stubs
+        environmentVariables.set("TOKENHA_EXPIRATION_TIME_MILLIS", "120000");
+        environmentVariables.set("TOKENHA_NUMBER_OF_LAST_TOKENS", "3");
+        environmentVariables.set("TOKENHA_MAX_TOKENS", "15");
+        environmentVariables.set("TOKENHA_COOL_TIME_MILLIS", "500");
+        environmentVariables.set("TOKENHA_PERSISTENCE_FILE_PATH", "env-tokens.json");
+
+        environmentVariables.set("TOKENHA_EVICTION_INITIAL_DELAY_MILLIS", "2000");
+        environmentVariables.set("TOKENHA_EVICTION_INTERVAL_MILLIS", "20000");
+
+        // Test fromEnvironment() set each value from environment variables
+        TokenHaConfig config = TokenHaConfig.fromEnvironment();
+        assertEquals(120000, config.getExpirationTimeMillis());
+        assertEquals(3, config.getNumberOfLastTokens());
+        assertEquals(15, config.getMaxTokens());
+        assertEquals(500, config.getCoolTimeToAddMillis());
+        assertEquals("env-tokens.json", config.getPersistenceFilePath());
+        assertEquals(2000, config.getEvictionThreadConfig().getInitialDelayMillis());
+        assertEquals(20000, config.getEvictionThreadConfig().getIntervalMillis());
+    }
 
 }
