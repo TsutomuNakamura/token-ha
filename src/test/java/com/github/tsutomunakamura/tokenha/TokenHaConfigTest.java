@@ -108,49 +108,6 @@ public class TokenHaConfigTest {
         }
     }
 
-    // Test cases for fromEnvironment() method
-
-    // @Test
-    // @DisplayName("fromEnvironment() should use mocked environment variables")
-    // void testFromEnvironmentWithMocking() {
-    //     // Use Mockito to mock static method calls for better testing
-
-    //     environmentVariables.set("TOKENHA_EXPIRATION_TIME_MILLIS", "120000");
-
-    //     try (MockedStatic<TokenHaConfig> mockedTokenHaConfig = mockStatic(TokenHaConfig.class)) {
-
-    //         // Create a config with specific values to test
-    //         TokenHaConfig expectedConfig = new TokenHaConfig.Builder()
-    //             .expirationTimeMillis(120000)
-    //             .numberOfLastTokens(3)
-    //             .maxTokens(15)
-    //             .coolTimeToAddMillis(500)
-    //             .persistenceFilePath("env-tokens.json")
-    //             .evictionThreadConfig(new EvictionThreadConfig.Builder()
-    //                 .initialDelayMillis(2000)
-    //                 .intervalMillis(20000)
-    //                 .build())
-    //             .build();
-            
-    //         TokenHaConfig.fromEnvironment();
-            
-    //         // Test the mocked behavior
-    //         TokenHaConfig config = TokenHaConfig.fromEnvironment();
-    //         assertEquals(120000, config.getExpirationTimeMillis());
-    //         // assertEquals(3, config.getNumberOfLastTokens());
-    //         // assertEquals(15, config.getMaxTokens());
-    //         // assertEquals(500, config.getCoolTimeToAddMillis());
-    //         // assertEquals("env-tokens.json", config.getPersistenceFilePath());
-            
-    //         // // Test eviction thread config
-    //         // EvictionThreadConfig evictionConfig = config.getEvictionThreadConfig();
-    //         // assertEquals(2000, evictionConfig.getInitialDelayMillis());
-    //         // assertEquals(20000, evictionConfig.getIntervalMillis());
-    //     }
-    // }
-
-
-
     @Test
     @DisplayName("fromEnvironment() should use mocked environment variables")
     void testFromEnvironmentWithMocking() {
