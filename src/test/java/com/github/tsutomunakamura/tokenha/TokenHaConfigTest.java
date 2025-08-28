@@ -75,36 +75,37 @@ public class TokenHaConfigTest {
         EvictionThreadConfig evictionConfig = EvictionThreadConfig.defaultConfig();
 
         // Create a mock to return null when EvictionThreadConfig.fromProperties(properties) has called
-        MockedStatic<EvictionThreadConfig> mockedEvictionThreadConfig = mockStatic(EvictionThreadConfig.class);
-        mockedEvictionThreadConfig
-            .when(() -> EvictionThreadConfig.fromProperties(props))
-            .thenReturn(null);
-        mockedEvictionThreadConfig
-            .when(EvictionThreadConfig::defaultConfig)
-            .thenReturn(evictionConfig);
+        try (MockedStatic<EvictionThreadConfig> mockedEvictionThreadConfig = mockStatic(EvictionThreadConfig.class)) {
+            mockedEvictionThreadConfig
+                .when(() -> EvictionThreadConfig.fromProperties(props))
+                .thenReturn(null);
+                mockedEvictionThreadConfig
+                .when(EvictionThreadConfig::defaultConfig)
+                .thenReturn(evictionConfig);
          
-        TokenHaConfig config = TokenHaConfig.fromProperties(props);
+            TokenHaConfig config = TokenHaConfig.fromProperties(props);
 
-        try {
-            Field fieldExpirationTime = TokenHaConfig.class.getDeclaredField("DEFAULT_EXPIRATION_TIME_MILLIS");
-            fieldExpirationTime.setAccessible(true);
-            Field fieldNumberOfLastTokens = TokenHaConfig.class.getDeclaredField("DEFAULT_NUMBER_OF_LAST_TOKENS");
-            fieldNumberOfLastTokens.setAccessible(true);
-            Field fieldMaxTokens = TokenHaConfig.class.getDeclaredField("DEFAULT_MAX_TOKENS");
-            fieldMaxTokens.setAccessible(true);
-            Field fieldCoolTimeMillis = TokenHaConfig.class.getDeclaredField("DEFAULT_COOL_TIME_MILLIS");
-            fieldCoolTimeMillis.setAccessible(true);
-            Field fieldPersistenceFilePath = TokenHaConfig.class.getDeclaredField("DEFAULT_PERSISTENCE_FILE_PATH");
-            fieldPersistenceFilePath.setAccessible(true);
+            try {
+                Field fieldExpirationTime = TokenHaConfig.class.getDeclaredField("DEFAULT_EXPIRATION_TIME_MILLIS");
+                fieldExpirationTime.setAccessible(true);
+                Field fieldNumberOfLastTokens = TokenHaConfig.class.getDeclaredField("DEFAULT_NUMBER_OF_LAST_TOKENS");
+                fieldNumberOfLastTokens.setAccessible(true);
+                Field fieldMaxTokens = TokenHaConfig.class.getDeclaredField("DEFAULT_MAX_TOKENS");
+                fieldMaxTokens.setAccessible(true);
+                Field fieldCoolTimeMillis = TokenHaConfig.class.getDeclaredField("DEFAULT_COOL_TIME_MILLIS");
+                fieldCoolTimeMillis.setAccessible(true);
+                Field fieldPersistenceFilePath = TokenHaConfig.class.getDeclaredField("DEFAULT_PERSISTENCE_FILE_PATH");
+                fieldPersistenceFilePath.setAccessible(true);
 
-            assertEquals(fieldExpirationTime.getLong(null), config.getExpirationTimeMillis());
-            assertEquals(fieldNumberOfLastTokens.getInt(null), config.getNumberOfLastTokens());
-            assertEquals(fieldMaxTokens.getInt(null), config.getMaxTokens());
-            assertEquals(fieldCoolTimeMillis.getLong(null), config.getCoolTimeToAddMillis());
-            assertEquals(fieldPersistenceFilePath.get(null), config.getPersistenceFilePath());
-        } catch (Exception e) {
-            e.printStackTrace();
-            assert false : "Failed to access defaulit values via reflection";
+                assertEquals(fieldExpirationTime.getLong(null), config.getExpirationTimeMillis());
+                assertEquals(fieldNumberOfLastTokens.getInt(null), config.getNumberOfLastTokens());
+                assertEquals(fieldMaxTokens.getInt(null), config.getMaxTokens());
+                assertEquals(fieldCoolTimeMillis.getLong(null), config.getCoolTimeToAddMillis());
+                assertEquals(fieldPersistenceFilePath.get(null), config.getPersistenceFilePath());
+            } catch (Exception e) {
+                e.printStackTrace();
+                assert false : "Failed to access defaulit values via reflection";
+            }
         }
     }
 
