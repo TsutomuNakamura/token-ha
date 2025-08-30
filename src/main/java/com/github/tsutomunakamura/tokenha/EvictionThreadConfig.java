@@ -128,11 +128,7 @@ public class EvictionThreadConfig {
     private static long getLongProperty(Properties props, String key, long defaultValue) {
         String value = props.getProperty(key);
         if (value != null) {
-            try {
-                return Long.parseLong(value.trim());
-            } catch (NumberFormatException e) {
-                System.err.println("Invalid long value for property " + key + ": " + value + ". Using default: " + defaultValue);
-            }
+            return Long.parseLong(value.trim());
         }
         return defaultValue;
     }
@@ -140,11 +136,7 @@ public class EvictionThreadConfig {
     private static long getLongEnv(String key, long defaultValue) {
         String value = System.getenv(key);
         if (value != null) {
-            try {
-                return Long.parseLong(value.trim());
-            } catch (NumberFormatException e) {
-                System.err.println("Invalid long value for environment variable " + key + ": " + value + ". Using default: " + defaultValue);
-            }
+            return Long.parseLong(value.trim());
         }
         return defaultValue;
     }

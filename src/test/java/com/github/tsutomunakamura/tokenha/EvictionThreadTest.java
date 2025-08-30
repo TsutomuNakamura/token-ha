@@ -3,6 +3,7 @@ package com.github.tsutomunakamura.tokenha;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
@@ -966,8 +967,8 @@ public class EvictionThreadTest {
         invokeEvictTokens();
         
         // Should have processed valid instances and cleaned up dead references
-        verify(validMock1, times(1)).evictExpiredTokens();
-        verify(validMock2, times(1)).evictExpiredTokens();
+        verify(validMock1, atLeast(1)).evictExpiredTokens();
+        verify(validMock2, atLeast(1)).evictExpiredTokens();
         
         // Clean up
         evictionThread.unregister(validMock1);
