@@ -30,4 +30,35 @@ public class EvictionThreadConfigTest {
 
     // Test cases for fromProperties() method
     
+    @Test
+    @DisplayName("Builder should set initialDelayMillis with defauilt value when builder.initialDelayMillis(initialDelay) throws IllegalArgumentException")
+    void testFromPropertiesWithInvalidInitialDelay() {
+        // Given properties with invalid initial delay
+        java.util.Properties props = new java.util.Properties();
+        props.setProperty("tokenha.eviction.initial.delay.millis", "-500"); // Invalid negative value
+        props.setProperty("tokenha.eviction.interval.millis", "20000"); // Valid value
+
+        // When
+        EvictionThreadConfig config = EvictionThreadConfig.fromProperties(props);
+
+        // Then - verify that default is used for invalid initial delay
+        assert config.getInitialDelayMillis() == 1000; // Default value
+        assert config.getIntervalMillis() == 20000; // From properties
+    }
+
+    @Test
+    @DisplayName("Builder should set intervalMillis with default value when builder.intervalMillis(interval) throws IllegalArgumentException")
+    void testFromPropertiesWithInvalidInterval() {
+        // Given properties with invalid interval
+        java.util.Properties props = new java.util.Properties();
+        props.setProperty("tokenha.eviction.initial.delay.millis", "3000"); // Valid value
+        props.setProperty("tokenha.eviction.interval.millis", "0"); // Invalid zero value
+
+        // When
+        EvictionThreadConfig config = EvictionThreadConfig.fromProperties(props);
+
+        // Then - verify that default is used for invalid interval
+        assert config.getInitialDelayMillis() == 3000; // From properties
+        assert config.getIntervalMillis() == 10000; // Default value
+    }
 }
