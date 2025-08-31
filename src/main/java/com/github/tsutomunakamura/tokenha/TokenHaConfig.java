@@ -76,48 +76,13 @@ public class TokenHaConfig {
         EvictionThreadConfig evictionConfig = EvictionThreadConfig.fromProperties(properties);
         
         // Apply values with validation - use defaults if validation fails
-        try {
-            builder.expirationTimeMillis(expirationTime);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid expiration time, using default: " + DEFAULT_EXPIRATION_TIME_MILLIS);
-            builder.expirationTimeMillis(DEFAULT_EXPIRATION_TIME_MILLIS);
-        }
-        
-        try {
-            builder.numberOfLastTokens(numberOfLastTokens);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid number of last tokens, using default: " + DEFAULT_NUMBER_OF_LAST_TOKENS);
-            builder.numberOfLastTokens(DEFAULT_NUMBER_OF_LAST_TOKENS);
-        }
-        
-        try {
-            builder.maxTokens(maxTokens);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid max tokens, using default: " + DEFAULT_MAX_TOKENS);
-            builder.maxTokens(DEFAULT_MAX_TOKENS);
-        }
-        
-        try {
-            builder.coolTimeToAddMillis(coolTime);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid cool time, using default: " + DEFAULT_COOL_TIME_MILLIS);
-            builder.coolTimeToAddMillis(DEFAULT_COOL_TIME_MILLIS);
-        }
-        
-        try {
-            builder.persistenceFilePath(filePath);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid persistence file path, using default: " + DEFAULT_PERSISTENCE_FILE_PATH);
-            builder.persistenceFilePath(DEFAULT_PERSISTENCE_FILE_PATH);
-        }
-        
-        try {
-            builder.evictionThreadConfig(evictionConfig);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid eviction thread config, using default");
-            builder.evictionThreadConfig(EvictionThreadConfig.defaultConfig());
-        }
-        
+        builder.expirationTimeMillis(expirationTime)
+            .numberOfLastTokens(numberOfLastTokens)
+            .maxTokens(maxTokens)
+            .coolTimeToAddMillis(coolTime)
+            .persistenceFilePath(filePath)
+            .evictionThreadConfig(evictionConfig);
+                                
         return builder.build();
     }
     
@@ -256,11 +221,7 @@ public class TokenHaConfig {
     private static int getIntProperty(Properties props, String key, int defaultValue) {
         String value = props.getProperty(key);
         if (value != null) {
-            try {
-                return Integer.parseInt(value.trim());
-            } catch (NumberFormatException e) {
-                System.err.println("Invalid integer value for property " + key + ": " + value + ". Using default: " + defaultValue);
-            }
+            return Integer.parseInt(value.trim());
         }
         return defaultValue;
     }

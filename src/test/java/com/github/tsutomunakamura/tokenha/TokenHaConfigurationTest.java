@@ -94,22 +94,28 @@ public class TokenHaConfigurationTest {
     }
     
     @Test
-    @DisplayName("Should handle invalid properties gracefully")
+    @DisplayName("fromProperties() should throw IllegalArgumentException on invalid properties")
     void shouldHandleInvalidProperties() throws IOException {
         // Given
         Properties props = new Properties();
         props.setProperty("tokenha.max.tokens", "invalid");  // Invalid integer
-        props.setProperty("tokenha.cool.time.millis", "-100");  // Invalid negative value
-        props.setProperty("tokenha.persistence.file.path", "test-invalid-props.json");
+        props.setProperty("tokenha.cool.time.millis", "10000");
         
-        // When - should not throw exception but use defaults
-        TokenHaConfig config = TokenHaConfig.fromProperties(props);
-        tokenHa = new TokenHa(config);
-        
-        // Then - should use default values for invalid properties
-        assertEquals("test-invalid-props.json", tokenHa.getPersistenceFilePath());
-        // maxTokens should be default (10) since "invalid" couldn't be parsed
-        assertFalse(tokenHa.isFilled(), "Should use default max tokens due to invalid property");
+        // When - should throw IllegalArgumentException when "tokenha.max.tokens" is invalid
+        assertThrows(IllegalArgumentException.class, () -> {
+            TokenHaConfig config = TokenHaConfig.fromProperties(props);
+            tokenHa = new TokenHa(config);
+        }, "Should throw IllegalArgumentException for invalid properties");
+
+        // Given
+        props.setProperty("tokenha.max.tokens", "3");
+        props.setProperty("tokenha.cool.time.millis", "-100");    // Invalid negative value
+
+        // When - should throw IllegalArgumentException when "tokenha.cool.time.millis" is negative
+        assertThrows(IllegalArgumentException.class, () -> {
+            TokenHaConfig config = TokenHaConfig.fromProperties(props);
+            tokenHa = new TokenHa(config);
+        }, "Should throw IllegalArgumentException for negative cool time");
     }
     
     @Test
