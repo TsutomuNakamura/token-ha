@@ -85,7 +85,7 @@ public class TokenHaConfigTest {
 
             // When - should throw IllegalArgumentException when "tokenha.expiration.time.millis" is negative
             try {
-                TokenHaConfig config = TokenHaConfig.fromProperties(props);
+                TokenHaConfig.fromProperties(props);
                 fail("Should throw IllegalArgumentException for missing or invalid expiration time");
             } catch (IllegalArgumentException e) {
                 // Expected exception
@@ -100,7 +100,7 @@ public class TokenHaConfigTest {
 
             // When - should throw IllegalArgumentException when "tokenha.number.of.last.tokens" is negative
             try {
-                TokenHaConfig config = TokenHaConfig.fromProperties(props);
+                TokenHaConfig.fromProperties(props);
                 fail("Should throw IllegalArgumentException for negative number of last tokens");
             } catch (IllegalArgumentException e) {
                 // Expected exception
@@ -115,7 +115,7 @@ public class TokenHaConfigTest {
 
             // When - should throw IllegalArgumentException when "tokenha.max.tokens" is negative
             try {
-                TokenHaConfig config = TokenHaConfig.fromProperties(props);
+                TokenHaConfig.fromProperties(props);
                 fail("Should throw IllegalArgumentException for non-positive max tokens");
             } catch (IllegalArgumentException e) {
                 // Expected exception
@@ -130,7 +130,7 @@ public class TokenHaConfigTest {
 
             // When - should throw IllegalArgumentException when "tokenha.cool.time.millis" is negative
             try {
-                TokenHaConfig config = TokenHaConfig.fromProperties(props);
+                TokenHaConfig.fromProperties(props);
                 fail("Should throw IllegalArgumentException for negative cool time");
             } catch (IllegalArgumentException e) {
                 // Expected exception
@@ -145,7 +145,7 @@ public class TokenHaConfigTest {
 
             // When - should throw IllegalArgumentException when "tokenha.persistence.file.path" is empty
             try {
-                TokenHaConfig config = TokenHaConfig.fromProperties(props);
+                TokenHaConfig.fromProperties(props);
                 fail("Should throw IllegalArgumentException for empty persistence file path");
             } catch (IllegalArgumentException e) {
                 // Expected exception
@@ -153,6 +153,8 @@ public class TokenHaConfigTest {
             }
         }
     }
+
+    // Test cases for fromEnvironment() method
 
     @Test
     @DisplayName("fromEnvironment() should use mocked environment variables")
