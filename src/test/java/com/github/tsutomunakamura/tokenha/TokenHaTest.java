@@ -64,6 +64,26 @@ public class TokenHaTest {
         field.setAccessible(true);
         field.set(target, value);
     }
+
+    // Test cases for constructor
+
+    @Test
+    @DisplayName("Constructor should throw IllegalArgumentException for null config")
+    void constructor_shouldThrowException_forNullConfig() {
+        TokenHa t = null;
+        try {
+            t = new TokenHa(null);
+        } catch (IllegalArgumentException e) {
+            assertEquals("Configuration cannot be null", e.getMessage());
+        } catch (IOException e) {
+            // Should not reach here
+            assert false;
+        } finally {
+            if (t != null) {
+                t.close();
+            }
+        }
+    }
     
     // Test cases for "public synchronized boolean addIfAvailable(String token)"
 
@@ -498,5 +518,13 @@ public class TokenHaTest {
             assertEquals("token-3", iterator.next().getToken(), "Second token should be token-3");
             assertEquals("token-2", iterator.next().getToken(), "Third token should be token-2");
         }
+    }
+
+    // Test cases for public String getPersistenceFilePath()
+
+    @Test
+    @DisplayName("getPersistenceFilePath() should return correct file path from config")
+    void getPersistenceFilePath_shouldReturnCorrectPath() {
+        assertEquals("test-tokenha-data.json", tokenHa.getPersistenceFilePath(), "Persistence file path should match config");
     }
 }
