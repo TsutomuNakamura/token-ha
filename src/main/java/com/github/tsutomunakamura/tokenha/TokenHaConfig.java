@@ -1,12 +1,16 @@
 package com.github.tsutomunakamura.tokenha;
 
 import java.util.Properties;
+import org.slf4j.Logger;
+import com.github.tsutomunakamura.tokenha.logging.TokenHaLogger;
 
 /**
  * Configuration class for TokenHa with builder pattern support.
  * Supports loading from properties, environment variables, or programmatic configuration.
  */
 public class TokenHaConfig {
+    
+    private static final Logger logger = TokenHaLogger.getLogger(TokenHaConfig.class);
     
     // Default values
     private static final long DEFAULT_EXPIRATION_TIME_MILLIS = 60000L;

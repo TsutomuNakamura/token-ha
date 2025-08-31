@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.lang.ref.WeakReference;
+import org.slf4j.Logger;
 
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
@@ -17,6 +18,8 @@ import com.github.tsutomunakamura.tokenha.element.TokenElement;
  * Currently outputs simple messages for testing purposes.
  */
 public class EvictionThread {
+    
+    private static final Logger logger = TokenHaLogger.getLogger(EvictionThread.class);
     
     // Singleton instance - will be initialized with default config
     private static volatile EvictionThread INSTANCE;
@@ -61,8 +64,7 @@ public class EvictionThread {
                 }
             }
         } else if (!INSTANCE.config.toString().equals(config.toString())) {
-            System.err.println("Warning: EvictionThread instance already exists with different configuration. " +
-                             "Using existing configuration: " + INSTANCE.config);
+            logger.warn("EvictionThread instance already exists with different configuration. Using existing configuration: {}", INSTANCE.config);
         }
         return INSTANCE;
     }
@@ -78,7 +80,7 @@ public class EvictionThread {
         synchronized(this) {
             registeredInstances.add(new WeakReference<>(tokenHa));
             cleanupDeadReferences();
-            System.out.println("TokenHa instance registered. Total instances: " + getActiveInstanceCount());
+            logger.debug("TokenHa instance registered. Total instances: {}", getActiveInstanceCount());
             
             // Start the thread if this is the first instance
             if (getActiveInstanceCount() >= 1 && (executorService == null || executorService.isShutdown())) {
@@ -90,7 +92,7 @@ public class EvictionThread {
     public void unregister(TokenHa tokenHa) {
         synchronized(this) {
             registeredInstances.removeIf(ref -> ref.get() == tokenHa || ref.get() == null);
-            System.out.println("TokenHa instance unregistered. Total instances: " + getActiveInstanceCount());
+            logger.debug("TokenHa instance unregistered. Total instances: {}", getActiveInstanceCount());
             
             // Stop the thread if no more instances
             if (getActiveInstanceCount() == 0) {
@@ -123,7 +125,7 @@ public class EvictionThread {
                 config.getIntervalMillis(),
                 TimeUnit.MILLISECONDS
             );
-            System.out.println("Singleton eviction thread started at " + getCurrentTimeString());
+            logger.info("Singleton eviction thread started at {}", getCurrentTimeString());
         }
     }
 
@@ -137,7 +139,7 @@ public class EvictionThread {
     private synchronized void stop() {
         if (executorService != null && !executorService.isShutdown()) {
             executorService.shutdown();
-            System.out.println("Singleton eviction thread stopped at " + getCurrentTimeString());
+            logger.info("Singleton eviction thread stopped at {}", getCurrentTimeString());
         }
     }
     
@@ -167,7 +169,7 @@ public class EvictionThread {
             currentInstances = Set.copyOf(registeredInstances);
         }
         
-        System.out.println("Eviction task running at " + getCurrentTimeString() + " - Managing " + getActiveInstanceCount() + " TokenHa instances");
+        logger.debug("Eviction task running at {} - Managing {} TokenHa instances", getCurrentTimeString(), getActiveInstanceCount());
         
         int totalTokensBefore = 0;
         int totalTokensAfter = 0;
@@ -182,12 +184,12 @@ public class EvictionThread {
                 totalTokensAfter += counter.getSizeAfter();
                 totalEvicted += counter.getSizeEvicted();
 
-                System.out.println("  TokenHa instance: " + counter.getSizeBefore() + " -> "
-                    + counter.getSizeAfter() + " (evicted " + counter.getSizeEvicted() + " expired tokens)");
+                logger.debug("  TokenHa instance: {} -> {} (evicted {} expired tokens)", 
+                    counter.getSizeBefore(), counter.getSizeAfter(), counter.getSizeEvicted());
             }
         }
 
-        System.out.println("  Total: " + totalTokensBefore + " -> " + totalTokensAfter + " tokens (evicted " + totalEvicted + " expired)");
+        logger.debug("  Total: {} -> {} tokens (evicted {} expired)", totalTokensBefore, totalTokensAfter, totalEvicted);
     }
 
     public EvictedCounter evictTokensFromTokenHa(TokenHa tokenHa) {

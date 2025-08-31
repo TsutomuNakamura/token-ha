@@ -1,0 +1,111 @@
+package com.github.tsutomunakamura.tokenha.logging;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Centralized logging utility for TokenHa library.
+ * 
+ * This class provides adaptive logging that automatically uses whatever logging 
+ * framework is available in the user's project:
+ * - If Logback is present → uses Logback with user's configuration
+ * - If Log4j2 is present → uses Log4j2 with user's configuration
+ * - If java.util.logging is present → uses JUL
+ * - If no logging framework → falls back to simple console output
+ * 
+ * Usage:
+ * <pre>
+ * private static final Logger logger = TokenHaLogger.getLogger(MyClass.class);
+ * logger.info("This follows user's logging configuration");
+ * logger.warn("Warning message");
+ * logger.error("Error message", exception);
+ * </pre>
+ */
+public class TokenHaLogger {
+    
+    // Default logger for the library
+    private static final Logger DEFAULT_LOGGER = LoggerFactory.getLogger("com.github.tsutomunakamura.tokenha");
+    
+    /**
+     * Get a logger for the specified class.
+     * This follows standard SLF4J practices and will use whatever logging 
+     * implementation is available in the user's project.
+     * 
+     * @param clazz The class to create a logger for
+     * @return Logger instance that adapts to user's logging configuration
+     */
+    public static Logger getLogger(Class<?> clazz) {
+        return LoggerFactory.getLogger(clazz);
+    }
+    
+    /**
+     * Get a logger for the specified name.
+     * 
+     * @param name The logger name
+     * @return Logger instance that adapts to user's logging configuration
+     */
+    public static Logger getLogger(String name) {
+        return LoggerFactory.getLogger(name);
+    }
+    
+    /**
+     * Get the default logger for the TokenHa library.
+     * 
+     * @return Default logger for general library messages
+     */
+    public static Logger getDefaultLogger() {
+        return DEFAULT_LOGGER;
+    }
+    
+    /**
+     * Utility method to log configuration loading errors with fallback.
+     * This is used internally when configuration parsing fails.
+     * 
+     * @param message The error message
+     * @param defaultValue The default value being used
+     */
+    public static void logConfigurationError(String message, Object defaultValue) {
+        Logger logger = getLogger("com.github.tsutomunakamura.tokenha.config");
+        logger.warn("{} Using default: {}", message, defaultValue);
+    }
+    
+    /**
+     * Utility method to log file persistence operations.
+     * 
+     * @param message The message to log
+     * @param filePath The file path being operated on
+     */
+    public static void logFilePersistence(String message, String filePath) {
+        Logger logger = getLogger("com.github.tsutomunakamura.tokenha.persistence");
+        logger.debug("{} File: {}", message, filePath);
+    }
+    
+    /**
+     * Utility method to log eviction thread operations.
+     * 
+     * @param message The message to log
+     */
+    public static void logEvictionThread(String message) {
+        Logger logger = getLogger("com.github.tsutomunakamura.tokenha.eviction");
+        logger.debug(message);
+    }
+    
+    /**
+     * Check if debug logging is enabled.
+     * This can be used to avoid expensive string operations when debug is disabled.
+     * 
+     * @return true if debug logging is enabled
+     */
+    public static boolean isDebugEnabled() {
+        return DEFAULT_LOGGER.isDebugEnabled();
+    }
+    
+    /**
+     * Check if trace logging is enabled.
+     * 
+     * @return true if trace logging is enabled
+     */
+    public static boolean isTraceEnabled() {
+        return DEFAULT_LOGGER.isTraceEnabled();
+    }
+}

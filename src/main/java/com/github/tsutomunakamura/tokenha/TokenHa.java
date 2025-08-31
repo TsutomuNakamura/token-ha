@@ -9,6 +9,7 @@ import java.util.List;
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 
@@ -17,6 +18,8 @@ import java.io.IOException;
  */
 public class TokenHa implements AutoCloseable {
 
+    private static final Logger logger = TokenHaLogger.getLogger(TokenHa.class);
+    
     // Configuration parameters - now configurable
     private final long expirationTimeMillis;
     private final int numberOfLastTokens;
@@ -139,7 +142,7 @@ public class TokenHa implements AutoCloseable {
     public void loadFromFile() throws IOException {
         String content = filePersistence.load();
         if (content != null) {
-            System.out.println("Loaded content: " + content);
+            logger.trace("Loaded content: {}", content);
             
             try {
                 TokenData data = gson.fromJson(content, TokenData.class);
@@ -159,10 +162,10 @@ public class TokenHa implements AutoCloseable {
                         fifoQueue.add(token);
                     }
                     
-                    System.out.println("Loaded " + fifoQueue.size() + " tokens from file");
+                    logger.debug("Loaded {} tokens from file", fifoQueue.size());
                 }
             } catch (JsonSyntaxException e) {
-                System.err.println("Error parsing JSON with Gson: " + e.getMessage());
+                logger.warn("Error parsing JSON with Gson: {}", e.getMessage());
             }
         }
     }

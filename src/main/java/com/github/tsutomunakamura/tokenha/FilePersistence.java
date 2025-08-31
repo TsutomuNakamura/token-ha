@@ -6,6 +6,8 @@ import java.nio.file.Paths;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.io.RandomAccessFile;
+import org.slf4j.Logger;
+import com.github.tsutomunakamura.tokenha.logging.TokenHaLogger;
 
 /**
  * Handles file persistence operations for TokenHa instances.
@@ -13,6 +15,8 @@ import java.io.RandomAccessFile;
  * Maintains an exclusive file lock during the instance lifetime.
  */
 public class FilePersistence implements AutoCloseable {
+    
+    private static final Logger logger = TokenHaLogger.getLogger(FilePersistence.class);
     
     private String filePath;
     
@@ -49,23 +53,22 @@ public class FilePersistence implements AutoCloseable {
             
             // 2. This can throw IOException if channel cannot be obtained
             fileChannel = persistenceFile.getChannel();
-            System.out.println(fileChannel);
+            logger.trace("FileChannel created: {}", fileChannel);
             
             // 3. This can throw IOException if locking operation fails
             fileLock = fileChannel.tryLock();
             if (fileLock == null) {
-                System.err.println("Warning: Could not acquire file lock for " + filePath + 
-                                 ". Another instance may be using this file.");
+                logger.warn("Could not acquire file lock for {}. Another instance may be using this file.", filePath);
                 // Could throw exception here or implement retry logic
                 // For now, continue without lock but operations may be unsafe
                 throw new IOException("Failed to acquire file lock");
             } else {
-                System.out.println("Acquired exclusive lock for persistence file: " + filePath);
-                System.out.println("Working directory: " + System.getProperty("user.dir"));
-                System.out.println("Absolute file path: " + Paths.get(filePath).toAbsolutePath());
+                logger.debug("Acquired exclusive lock for persistence file: {}", filePath);
+                logger.trace("Working directory: {}", System.getProperty("user.dir"));
+                logger.trace("Absolute file path: {}", Paths.get(filePath).toAbsolutePath());
             }
         } catch (IOException e) {
-            System.err.println("Failed to initialize persistence file: " + filePath + ". Error: " + e.getMessage());
+            logger.error("Failed to initialize persistence file: {}. Error: {}", filePath, e.getMessage());
             close();
             throw e;
         }
@@ -81,7 +84,7 @@ public class FilePersistence implements AutoCloseable {
             if (fileLock != null) {
                 fileLock.release();
                 fileLock = null;
-                System.out.println("File lock released for: " + filePath);
+                logger.debug("File lock released for: {}", filePath);
             }
             if (fileChannel != null) {
                 fileChannel.close();
@@ -92,7 +95,7 @@ public class FilePersistence implements AutoCloseable {
                 persistenceFile = null;
             }
         } catch (IOException e) {
-            System.err.println("Error closing persistence file: " + e.getMessage());
+            logger.error("Error closing persistence file: {}", e.getMessage());
         }
     }
     
@@ -107,7 +110,7 @@ public class FilePersistence implements AutoCloseable {
         }
         
         if (fileLock == null) {
-            System.err.println("Warning: Saving without file lock. Data may be corrupted by concurrent access.");
+            logger.warn("Saving without file lock. Data may be corrupted by concurrent access.");
         }
 
         try {
@@ -121,11 +124,10 @@ public class FilePersistence implements AutoCloseable {
             // Force data to be written to disk immediately (flush)
             persistenceFile.getFD().sync();
             
-            System.out.println("File saved successfully. Size: " + persistenceFile.length() + " bytes");
+            logger.debug("File saved successfully. Size: {} bytes", persistenceFile.length());
             
         } catch (IOException e) {
-            System.err.println("Failed to save data to file: " + filePath + 
-                             ". Error: " + e.getMessage());
+            logger.error("Failed to save data to file: {}. Error: {}", filePath, e.getMessage());
             e.printStackTrace();
         }
     }
@@ -136,8 +138,8 @@ public class FilePersistence implements AutoCloseable {
      */
     public String load() throws IOException {
         String content = new String(Files.readAllBytes(Paths.get(filePath)));
-        System.out.println("Loaded data from file: " + filePath);
-        System.out.println("Content: " + content);
+        logger.debug("Loaded data from file: {}", filePath);
+        logger.trace("Content: {}", content);
         return content;
     }
     
@@ -179,8 +181,7 @@ public class FilePersistence implements AutoCloseable {
         try {
             return Files.deleteIfExists(Paths.get(filePath));
         } catch (IOException e) {
-            System.err.println("Failed to delete file: " + filePath + 
-                             ". Error: " + e.getMessage());
+            logger.error("Failed to delete file: {}. Error: {}", filePath, e.getMessage());
             return false;
         }
     }

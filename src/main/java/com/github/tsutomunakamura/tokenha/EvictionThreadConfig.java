@@ -1,12 +1,15 @@
 package com.github.tsutomunakamura.tokenha;
 
 import java.util.Properties;
+import org.slf4j.Logger;
 
 /**
  * Configuration class for EvictionThread with builder pattern support.
  * Supports loading from properties, environment variables, or programmatic configuration.
  */
 public class EvictionThreadConfig {
+    
+    private static final Logger logger = TokenHaLogger.getLogger(EvictionThreadConfig.class);
     
     // Default values
     private static final long DEFAULT_INITIAL_DELAY_MILLIS = 1000;
@@ -54,14 +57,14 @@ public class EvictionThreadConfig {
         try {
             builder.initialDelayMillis(initialDelay);
         } catch (IllegalArgumentException e) {
-            System.err.println("Invalid initial delay, using default: " + DEFAULT_INITIAL_DELAY_MILLIS);
+            logger.warn("Invalid initial delay, using default: {}", DEFAULT_INITIAL_DELAY_MILLIS);
             builder.initialDelayMillis(DEFAULT_INITIAL_DELAY_MILLIS);
         }
         
         try {
             builder.intervalMillis(interval);
         } catch (IllegalArgumentException e) {
-            System.err.println("Invalid interval, using default: " + DEFAULT_INTERVAL_MILLIS);
+            logger.warn("Invalid interval, using default: {}", DEFAULT_INTERVAL_MILLIS);
             builder.intervalMillis(DEFAULT_INTERVAL_MILLIS);
         }
         
@@ -82,14 +85,14 @@ public class EvictionThreadConfig {
         try {
             builder.initialDelayMillis(initialDelay);
         } catch (IllegalArgumentException e) {
-            System.err.println("Invalid initial delay from env, using default: " + DEFAULT_INITIAL_DELAY_MILLIS);
+            logger.warn("Invalid initial delay from env, using default: {}", DEFAULT_INITIAL_DELAY_MILLIS);
             builder.initialDelayMillis(DEFAULT_INITIAL_DELAY_MILLIS);
         }
         
         try {
             builder.intervalMillis(interval);
         } catch (IllegalArgumentException e) {
-            System.err.println("Invalid interval from env, using default: " + DEFAULT_INTERVAL_MILLIS);
+            logger.warn("Invalid interval from env, using default: {}", DEFAULT_INTERVAL_MILLIS);
             builder.intervalMillis(DEFAULT_INTERVAL_MILLIS);
         }
         
