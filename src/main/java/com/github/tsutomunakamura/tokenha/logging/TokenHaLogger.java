@@ -46,17 +46,6 @@ public class TokenHaLogger {
     public static Logger getLogger(Class<?> clazz) {
         return LoggerFactory.getLogger(clazz);
     }
-
-        
-    /**
-     * Get a logger for the specified name.
-     * 
-     * @param name the logger name
-     * @return a logger instance
-     */
-    public static Logger getLogger(String name) {
-        return LoggerFactory.getLogger(name);
-    }
     
     /**
      * Check if debug logging is enabled.
