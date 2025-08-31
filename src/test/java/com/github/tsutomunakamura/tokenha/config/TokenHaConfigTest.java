@@ -85,6 +85,33 @@ public class TokenHaConfigTest {
             assertEquals(expectedEvictionConfig, config.getEvictionThreadConfig());
         }
     }
+
+    @Test
+    @DisplayName("fromProperties() should return default values for missing properties")
+    void testFromPropertiesWithMissingProperties() {
+        java.util.Properties props = new java.util.Properties();
+        
+        // Before mocking, get the default EvictionThreadConfig prevent null pointer
+        EvictionThreadConfig evictionConfig = EvictionThreadConfig.defaultConfig();
+
+        // Create a mock to return null when EvictionThreadConfig.fromProperties(properties) has called
+        try (MockedStatic<EvictionThreadConfig> mockedEvictionThreadConfig = mockStatic(EvictionThreadConfig.class)) {
+            mockedEvictionThreadConfig.when(() -> EvictionThreadConfig.fromProperties(props)).thenReturn(evictionConfig);
+            mockedEvictionThreadConfig.when(EvictionThreadConfig::defaultConfig).thenReturn(evictionConfig);
+
+            // When - should throw IllegalArgumentException when "tokenha.expiration.time.millis" is negative
+            TokenHaConfig.fromProperties(props);
+
+            // Then - should use all default values
+            TokenHaConfig defaultConfig = TokenHaConfig.defaultConfig();
+            assertEquals(defaultConfig.getExpirationTimeMillis(), TokenHaConfig.fromProperties(props).getExpirationTimeMillis());
+            assertEquals(defaultConfig.getNumberOfLastTokens(), TokenHaConfig.fromProperties(props).getNumberOfLastTokens());
+            assertEquals(defaultConfig.getMaxTokens(), TokenHaConfig.fromProperties(props).getMaxTokens());
+            assertEquals(defaultConfig.getCoolTimeToAddMillis(), TokenHaConfig.fromProperties(props).getCoolTimeToAddMillis());
+            assertEquals(defaultConfig.getPersistenceFilePath(), TokenHaConfig.fromProperties(props).getPersistenceFilePath());
+            assertEquals(defaultConfig.getEvictionThreadConfig(), TokenHaConfig.fromProperties(props).getEvictionThreadConfig());
+        }
+    }
     
     @Test
     @DisplayName("fromProperties() should throw IllegalArgumentException when properties are missing")
