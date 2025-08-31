@@ -12,6 +12,7 @@ import java.lang.ref.WeakReference;
 import org.slf4j.Logger;
 
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
+import com.github.tsutomunakamura.tokenha.logging.TokenHaLogger;
 
 /**
  * A singleton thread class for handling token eviction tasks across all TokenHa instances.

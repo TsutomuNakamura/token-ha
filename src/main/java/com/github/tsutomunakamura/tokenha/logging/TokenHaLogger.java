@@ -25,7 +25,16 @@ public class TokenHaLogger {
     
     // Default logger for the library
     private static final Logger DEFAULT_LOGGER = LoggerFactory.getLogger("com.github.tsutomunakamura.tokenha");
-    
+
+    /**
+     * Get the default logger for the TokenHa library.
+     *
+     * @return Default logger for general library messages
+     */
+    public static Logger getDefaultLogger() {
+        return DEFAULT_LOGGER;
+    }
+
     /**
      * Get a logger for the specified class.
      * This follows standard SLF4J practices and will use whatever logging 
@@ -37,57 +46,16 @@ public class TokenHaLogger {
     public static Logger getLogger(Class<?> clazz) {
         return LoggerFactory.getLogger(clazz);
     }
-    
+
+        
     /**
      * Get a logger for the specified name.
      * 
-     * @param name The logger name
-     * @return Logger instance that adapts to user's logging configuration
+     * @param name the logger name
+     * @return a logger instance
      */
     public static Logger getLogger(String name) {
         return LoggerFactory.getLogger(name);
-    }
-    
-    /**
-     * Get the default logger for the TokenHa library.
-     * 
-     * @return Default logger for general library messages
-     */
-    public static Logger getDefaultLogger() {
-        return DEFAULT_LOGGER;
-    }
-    
-    /**
-     * Utility method to log configuration loading errors with fallback.
-     * This is used internally when configuration parsing fails.
-     * 
-     * @param message The error message
-     * @param defaultValue The default value being used
-     */
-    public static void logConfigurationError(String message, Object defaultValue) {
-        Logger logger = getLogger("com.github.tsutomunakamura.tokenha.config");
-        logger.warn("{} Using default: {}", message, defaultValue);
-    }
-    
-    /**
-     * Utility method to log file persistence operations.
-     * 
-     * @param message The message to log
-     * @param filePath The file path being operated on
-     */
-    public static void logFilePersistence(String message, String filePath) {
-        Logger logger = getLogger("com.github.tsutomunakamura.tokenha.persistence");
-        logger.debug("{} File: {}", message, filePath);
-    }
-    
-    /**
-     * Utility method to log eviction thread operations.
-     * 
-     * @param message The message to log
-     */
-    public static void logEvictionThread(String message) {
-        Logger logger = getLogger("com.github.tsutomunakamura.tokenha.eviction");
-        logger.debug(message);
     }
     
     /**

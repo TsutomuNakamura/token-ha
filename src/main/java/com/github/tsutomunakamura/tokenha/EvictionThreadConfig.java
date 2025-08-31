@@ -3,6 +3,8 @@ package com.github.tsutomunakamura.tokenha;
 import java.util.Properties;
 import org.slf4j.Logger;
 
+import com.github.tsutomunakamura.tokenha.logging.TokenHaLogger;
+
 /**
  * Configuration class for EvictionThread with builder pattern support.
  * Supports loading from properties, environment variables, or programmatic configuration.
