@@ -241,6 +241,21 @@ public class TokenHaConfigTest {
         assertEquals(20000, config.getEvictionThreadConfig().getIntervalMillis());
     }
 
+    @Test
+    @DisplayName("fromEnvironment() should use default values for missing env vars")
+    void testFromEnvironmentWithMissingEnvVars() {
+        // Test fromEnvironment() set each value from environment variables
+        TokenHaConfig config = TokenHaConfig.fromEnvironment();
+        TokenHaConfig defaultConfig = TokenHaConfig.defaultConfig();
+        assertEquals(defaultConfig.getExpirationTimeMillis(), config.getExpirationTimeMillis());
+        assertEquals(defaultConfig.getNumberOfLastTokens(), config.getNumberOfLastTokens());
+        assertEquals(defaultConfig.getMaxTokens(), config.getMaxTokens());
+        assertEquals(defaultConfig.getCoolTimeToAddMillis(), config.getCoolTimeToAddMillis());
+        assertEquals(defaultConfig.getPersistenceFilePath(), config.getPersistenceFilePath());
+        assertEquals(defaultConfig.getEvictionThreadConfig().getInitialDelayMillis(), config.getEvictionThreadConfig().getInitialDelayMillis());
+        assertEquals(defaultConfig.getEvictionThreadConfig().getIntervalMillis(), config.getEvictionThreadConfig().getIntervalMillis());
+    }
+
     // Test casees for TokenHaConfig.Builder.persistenceFilePath(String persistenceFilePath)
 
     @Test
