@@ -1,4 +1,4 @@
-package com.github.tsutomunakamura.tokenha;
+package com.github.tsutomunakamura.tokenha.eviction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.github.tsutomunakamura.tokenha.TokenHa;
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
 /**
@@ -113,14 +114,6 @@ public class EvictionThreadTest {
         evictTokensMethod.invoke(evictionThread);
     }
     
-    private Set<WeakReference<TokenHa>> getRegisteredInstances() throws Exception {
-        Field registeredInstancesField = EvictionThread.class.getDeclaredField("registeredInstances");
-        registeredInstancesField.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        Set<WeakReference<TokenHa>> instances = (Set<WeakReference<TokenHa>>) registeredInstancesField.get(evictionThread);
-        return instances;
-    }
-
     private List<TokenElement> createMockTokenList(int size) {
         List<TokenElement> tokens = new ArrayList<>();
         long currentTime = System.currentTimeMillis();

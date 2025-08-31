@@ -1,4 +1,4 @@
-package com.github.tsutomunakamura.tokenha;
+package com.github.tsutomunakamura.tokenha.eviction;
 
 import java.util.Set;
 import java.util.List;
@@ -11,6 +11,8 @@ import java.time.format.DateTimeFormatter;
 import java.lang.ref.WeakReference;
 import org.slf4j.Logger;
 
+import com.github.tsutomunakamura.tokenha.TokenHa;
+import com.github.tsutomunakamura.tokenha.config.EvictionThreadConfig;
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
 import com.github.tsutomunakamura.tokenha.logging.TokenHaLogger;
 

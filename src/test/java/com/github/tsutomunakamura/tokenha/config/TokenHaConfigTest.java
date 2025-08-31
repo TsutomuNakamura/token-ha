@@ -1,19 +1,12 @@
-package com.github.tsutomunakamura.tokenha;
+package com.github.tsutomunakamura.tokenha.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
-
-import java.lang.reflect.Field;
-import java.util.Collections;
-import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junitpioneer.jupiter.SetEnvironmentVariable;
 import org.mockito.MockedStatic;
 
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;

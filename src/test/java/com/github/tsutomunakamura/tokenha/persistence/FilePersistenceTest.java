@@ -1,4 +1,4 @@
-package com.github.tsutomunakamura.tokenha;
+package com.github.tsutomunakamura.tokenha.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -23,6 +23,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
+
+import com.github.tsutomunakamura.tokenha.TokenHa;
 
 /**
  * Test class for FilePersistence.

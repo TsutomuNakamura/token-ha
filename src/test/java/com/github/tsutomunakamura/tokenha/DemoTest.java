@@ -1,7 +1,9 @@
 package com.github.tsutomunakamura.tokenha;
 
-import com.github.tsutomunakamura.tokenha.element.TokenElement;
 import org.junit.jupiter.api.Test;
+
+import com.github.tsutomunakamura.tokenha.element.TokenElement;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;

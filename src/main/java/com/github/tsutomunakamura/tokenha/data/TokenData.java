@@ -1,7 +1,8 @@
-package com.github.tsutomunakamura.tokenha.core;
+package com.github.tsutomunakamura.tokenha.data;
 
 import java.util.List;
-import com.github.tsutomunakamura.tokenha.core.element.TokenElement;
+
+import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
 /**
  * Data class for JSON serialization/deserialization.

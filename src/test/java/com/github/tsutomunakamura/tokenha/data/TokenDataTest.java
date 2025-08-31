@@ -1,4 +1,4 @@
-package com.github.tsutomunakamura.tokenha;
+package com.github.tsutomunakamura.tokenha.data;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

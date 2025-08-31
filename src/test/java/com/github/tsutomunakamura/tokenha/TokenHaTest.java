@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.github.tsutomunakamura.tokenha.config.EvictionThreadConfig;
+import com.github.tsutomunakamura.tokenha.config.TokenHaConfig;
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
 /**
