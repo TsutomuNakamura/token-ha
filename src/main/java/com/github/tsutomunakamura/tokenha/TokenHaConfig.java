@@ -104,47 +104,12 @@ public class TokenHaConfig {
         EvictionThreadConfig evictionConfig = EvictionThreadConfig.fromEnvironment();
         
         // Apply values with validation - use defaults if validation fails
-        try {
-            builder.expirationTimeMillis(expirationTime);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid expiration time from env, using default: " + DEFAULT_EXPIRATION_TIME_MILLIS);
-            builder.expirationTimeMillis(DEFAULT_EXPIRATION_TIME_MILLIS);
-        }
-        
-        try {
-            builder.numberOfLastTokens(numberOfLastTokens);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid number of last tokens from env, using default: " + DEFAULT_NUMBER_OF_LAST_TOKENS);
-            builder.numberOfLastTokens(DEFAULT_NUMBER_OF_LAST_TOKENS);
-        }
-        
-        try {
-            builder.maxTokens(maxTokens);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid max tokens from env, using default: " + DEFAULT_MAX_TOKENS);
-            builder.maxTokens(DEFAULT_MAX_TOKENS);
-        }
-        
-        try {
-            builder.coolTimeToAddMillis(coolTime);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid cool time from env, using default: " + DEFAULT_COOL_TIME_MILLIS);
-            builder.coolTimeToAddMillis(DEFAULT_COOL_TIME_MILLIS);
-        }
-        
-        try {
-            builder.persistenceFilePath(filePath);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid persistence file path from env, using default: " + DEFAULT_PERSISTENCE_FILE_PATH);
-            builder.persistenceFilePath(DEFAULT_PERSISTENCE_FILE_PATH);
-        }
-        
-        try {
-            builder.evictionThreadConfig(evictionConfig);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid eviction thread config from env, using default");
-            builder.evictionThreadConfig(EvictionThreadConfig.defaultConfig());
-        }
+        builder.expirationTimeMillis(expirationTime)
+            .numberOfLastTokens(numberOfLastTokens)
+            .maxTokens(maxTokens)
+            .coolTimeToAddMillis(coolTime)
+            .persistenceFilePath(filePath)
+            .evictionThreadConfig(evictionConfig);
         
         return builder.build();
     }
