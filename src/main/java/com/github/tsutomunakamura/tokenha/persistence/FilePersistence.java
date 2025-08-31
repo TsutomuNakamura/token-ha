@@ -1,4 +1,4 @@
-package com.github.tsutomunakamura.tokenha;
+package com.github.tsutomunakamura.tokenha.persistence;
 
 import java.io.IOException;
 import java.nio.file.Files;

@@ -1,4 +1,4 @@
-package com.github.tsutomunakamura.tokenha.element;
+package com.github.tsutomunakamura.tokenha.core.element;
 
 public class TokenElement {
 
