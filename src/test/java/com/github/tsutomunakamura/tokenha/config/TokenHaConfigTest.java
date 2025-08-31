@@ -52,6 +52,39 @@ public class TokenHaConfigTest {
     }
 
     // Test cases for fromProperties() method
+
+    @Test
+    @DisplayName("fromProperties() should create config from valid properties")
+    void testFromPropertiesValid() {
+        java.util.Properties props = new java.util.Properties();
+        props.setProperty("tokenha.expiration.time.millis", "120000");
+        props.setProperty("tokenha.number.of.last.tokens", "3");
+        props.setProperty("tokenha.max.tokens", "15");
+        props.setProperty("tokenha.cool.time.millis", "500");
+        props.setProperty("tokenha.persistence.file.path", "props-tokens.json");
+
+        // Create a mock to return a specific EvictionThreadConfig when EvictionThreadConfig.fromProperties(properties) has called
+        EvictionThreadConfig expectedEvictionConfig = new EvictionThreadConfig.Builder()
+                                                            .initialDelayMillis(1500)
+                                                            .intervalMillis(15000)
+                                                            .build();
+
+        try (MockedStatic<EvictionThreadConfig> mockedEvictionThreadConfig = mockStatic(EvictionThreadConfig.class)) {
+            mockedEvictionThreadConfig
+                .when(() -> EvictionThreadConfig.fromProperties(props))
+                .thenReturn(expectedEvictionConfig);
+            
+            // When
+            TokenHaConfig config = TokenHaConfig.fromProperties(props);
+            // Then
+            assertEquals(120000, config.getExpirationTimeMillis());
+            assertEquals(3, config.getNumberOfLastTokens());
+            assertEquals(15, config.getMaxTokens());
+            assertEquals(500, config.getCoolTimeToAddMillis());
+            assertEquals("props-tokens.json", config.getPersistenceFilePath());
+            assertEquals(expectedEvictionConfig, config.getEvictionThreadConfig());
+        }
+    }
     
     @Test
     @DisplayName("fromProperties() should throw IllegalArgumentException when properties are missing")
