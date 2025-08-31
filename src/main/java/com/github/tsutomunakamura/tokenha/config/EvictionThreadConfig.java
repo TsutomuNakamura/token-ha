@@ -84,19 +84,8 @@ public class EvictionThreadConfig {
         long interval = getLongEnv("TOKENHA_EVICTION_INTERVAL_MILLIS", DEFAULT_INTERVAL_MILLIS);
         
         // Apply values with validation - use defaults if validation fails
-        try {
-            builder.initialDelayMillis(initialDelay);
-        } catch (IllegalArgumentException e) {
-            logger.warn("Invalid initial delay from env, using default: {}", DEFAULT_INITIAL_DELAY_MILLIS);
-            builder.initialDelayMillis(DEFAULT_INITIAL_DELAY_MILLIS);
-        }
-        
-        try {
-            builder.intervalMillis(interval);
-        } catch (IllegalArgumentException e) {
-            logger.warn("Invalid interval from env, using default: {}", DEFAULT_INTERVAL_MILLIS);
-            builder.intervalMillis(DEFAULT_INTERVAL_MILLIS);
-        }
+        builder.initialDelayMillis(initialDelay)
+               .intervalMillis(interval);
         
         return builder.build();
     }

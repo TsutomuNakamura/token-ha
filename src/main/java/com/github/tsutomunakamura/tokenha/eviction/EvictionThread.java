@@ -36,9 +36,6 @@ public class EvictionThread {
     
     // Private constructor for singleton with custom configuration
     private EvictionThread(EvictionThreadConfig config) {
-        if (config == null) {
-            throw new IllegalArgumentException("Configuration cannot be null");
-        }
         this.config = config;
     }
     
