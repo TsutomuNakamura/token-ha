@@ -65,6 +65,8 @@ public class TokenHaTest {
         field.set(target, value);
     }
     
+    // Test cases for "public synchronized boolean addIfAvailable(String token)"
+
     @Test
     @DisplayName("addIfAvailable() should add token successfully when queue is empty and no cool time restriction")
     void addIfAvailable_shouldAddToken_whenQueueIsEmpty() throws Exception {
