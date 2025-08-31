@@ -21,7 +21,11 @@ import org.slf4j.LoggerFactory;
  * logger.error("Error message", exception);
  * </pre>
  */
-public class TokenHaLogger {
+public final class TokenHaLogger {
+
+    private TokenHaLogger() {
+        // Prevent instantiation
+    }
     
     // Default logger for the library
     private static final Logger DEFAULT_LOGGER = LoggerFactory.getLogger("com.github.tsutomunakamura.tokenha");
