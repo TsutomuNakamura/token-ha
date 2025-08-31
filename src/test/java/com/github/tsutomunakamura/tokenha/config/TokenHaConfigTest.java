@@ -214,4 +214,85 @@ public class TokenHaConfigTest {
         assertEquals(20000, config.getEvictionThreadConfig().getIntervalMillis());
     }
 
+    // Test casees for TokenHaConfig.Builder.persistenceFilePath(String persistenceFilePath)
+
+    @Test
+    @DisplayName("Builder.persistenceFilePath() should throw IllegalArgumentException for null or empty path")
+    void testBuilderPersistenceFilePathValidation() {
+        // Test null path
+        try {
+            new TokenHaConfig.Builder().persistenceFilePath(null);
+            fail("Should throw IllegalArgumentException for null persistence file path");
+        } catch (IllegalArgumentException e) {
+            // Expected exception
+            assert e.getMessage().contains("Persistence file path cannot be null or empty");
+        }
+
+        // Test empty path
+        try {
+            new TokenHaConfig.Builder().persistenceFilePath("");
+            fail("Should throw IllegalArgumentException for empty persistence file path");
+        } catch (IllegalArgumentException e) {
+            // Expected exception
+            assert e.getMessage().contains("Persistence file path cannot be null or empty");
+        }
+    }
+
+    // Test cases for TokenHaConfig.Builder.evictionThreadConfig(EvictionThreadConfig evictionThreadConfig)
+
+    @Test
+    @DisplayName("Builder.evictionThreadConfig() should throw IllegalArgumentException for null config")
+    void testBuilderEvictionThreadConfigValidation() {
+        // Test null config
+        try {
+            new TokenHaConfig.Builder().evictionThreadConfig(null);
+            fail("Should throw IllegalArgumentException for null eviction thread config");
+        } catch (IllegalArgumentException e) {
+            // Expected exception
+            assert e.getMessage().contains("Eviction thread configuration cannot be null");
+        }
+    }
+
+    // Test cases for TokenHaConfig.Builder.build()
+
+    @Test
+    @DisplayName("Builder.build() should throw IllegalArgumentException when numberOfLastTokens >= maxTokens")
+    void testBuilderBuildValidation() {
+        try {
+            new TokenHaConfig.Builder()
+                .maxTokens(5)
+                .numberOfLastTokens(5)  // Must be less than max tokens
+                .build();
+            fail("Should throw IllegalArgumentException for numberOfLastTokens >= maxTokens");
+        } catch (IllegalArgumentException e) {
+            // Expected exception
+            assert e.getMessage().contains("Number of last tokens must be less than max tokens");
+        }
+    }
+
+    // Test cases for toString()
+
+    @Test
+    @DisplayName("toString() should include all configuration parameters")
+    void testToStringIncludesAllParameters() {
+        TokenHaConfig config = new TokenHaConfig.Builder()
+            .maxTokens(10)
+            .coolTimeToAddMillis(1000)
+            .numberOfLastTokens(2)
+            .expirationTimeMillis(60000)
+            .persistenceFilePath("test-config.json")
+            .evictionThreadConfig(new EvictionThreadConfig.Builder()
+                                      .initialDelayMillis(1500)
+                                      .intervalMillis(15000)
+                                      .build())
+            .build();
+
+        String toString = config.toString();
+        assert toString.contains("maxTokens=10");
+        assert toString.contains("coolTimeToAddMillis=1000");
+        assert toString.contains("numberOfLastTokens=2");
+        assert toString.contains("expirationTimeMillis=60000");
+        assert toString.contains("persistenceFilePath='test-config.json'");
+        assert toString.contains("evictionThreadConfig=EvictionThreadConfig{initialDelayMillis=1500, intervalMillis=15000}");
+    }
 }
