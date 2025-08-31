@@ -61,15 +61,9 @@ public class TokenHaConfigTest {
     // Test cases for fromProperties() method
     
     @Test
-    @DisplayName("fromProperties() should use defaults when properties are missing")
+    @DisplayName("fromProperties() should throw IllegalArgumentException when properties are missing")
     void testFromPropertiesMissingExpirationTime() {
         java.util.Properties props = new java.util.Properties();
-        // Intentionally not setting tokenha.expiration.time.millis
-        props.setProperty("tokenha.expiration.time.millis", "-1");
-        props.setProperty("tokenha.number.of.last.tokens", "-1");
-        props.setProperty("tokenha.max.tokens", "0");
-        props.setProperty("tokenha.cool.time.millis", "-1");
-        props.setProperty("tokenha.persistence.file.path", "");
 
         // Before mocking, get the default EvictionThreadConfig prevent null pointer
         EvictionThreadConfig evictionConfig = EvictionThreadConfig.defaultConfig();
@@ -83,28 +77,86 @@ public class TokenHaConfigTest {
                 .when(EvictionThreadConfig::defaultConfig)
                 .thenReturn(evictionConfig);
          
-            TokenHaConfig config = TokenHaConfig.fromProperties(props);
+            // Intentionally not setting tokenha.expiration.time.millis
+            // props.setProperty("tokenha.expiration.time.millis", "-1");
+            // props.setProperty("tokenha.number.of.last.tokens", "-1");
+            // props.setProperty("tokenha.max.tokens", "0");
+            // props.setProperty("tokenha.cool.time.millis", "-1");
+            // props.setProperty("tokenha.persistence.file.path", "");
 
+            props.setProperty("tokenha.expiration.time.millis", "-1");    // Cannot be negative or zero
+            props.setProperty("tokenha.number.of.last.tokens", "2");
+            props.setProperty("tokenha.max.tokens", "11");
+            props.setProperty("tokenha.cool.time.millis", "1000");
+            props.setProperty("tokenha.persistence.file.path", "tokenha-data.json");
+
+            // When - should throw IllegalArgumentException when "tokenha.expiration.time.millis" is negative
             try {
-                Field fieldExpirationTime = TokenHaConfig.class.getDeclaredField("DEFAULT_EXPIRATION_TIME_MILLIS");
-                fieldExpirationTime.setAccessible(true);
-                Field fieldNumberOfLastTokens = TokenHaConfig.class.getDeclaredField("DEFAULT_NUMBER_OF_LAST_TOKENS");
-                fieldNumberOfLastTokens.setAccessible(true);
-                Field fieldMaxTokens = TokenHaConfig.class.getDeclaredField("DEFAULT_MAX_TOKENS");
-                fieldMaxTokens.setAccessible(true);
-                Field fieldCoolTimeMillis = TokenHaConfig.class.getDeclaredField("DEFAULT_COOL_TIME_MILLIS");
-                fieldCoolTimeMillis.setAccessible(true);
-                Field fieldPersistenceFilePath = TokenHaConfig.class.getDeclaredField("DEFAULT_PERSISTENCE_FILE_PATH");
-                fieldPersistenceFilePath.setAccessible(true);
+                TokenHaConfig config = TokenHaConfig.fromProperties(props);
+                fail("Should throw IllegalArgumentException for missing or invalid expiration time");
+            } catch (IllegalArgumentException e) {
+                // Expected exception
+                assert e.getMessage().contains("Expiration time must be positive and non-zero");                
+            }
 
-                assertEquals(fieldExpirationTime.getLong(null), config.getExpirationTimeMillis());
-                assertEquals(fieldNumberOfLastTokens.getInt(null), config.getNumberOfLastTokens());
-                assertEquals(fieldMaxTokens.getInt(null), config.getMaxTokens());
-                assertEquals(fieldCoolTimeMillis.getLong(null), config.getCoolTimeToAddMillis());
-                assertEquals(fieldPersistenceFilePath.get(null), config.getPersistenceFilePath());
-            } catch (Exception e) {
-                e.printStackTrace();
-                assert false : "Failed to access defaulit values via reflection";
+            props.setProperty("tokenha.expiration.time.millis", "60000");
+            props.setProperty("tokenha.number.of.last.tokens", "-1");      // Cann not be negative
+            props.setProperty("tokenha.max.tokens", "11");
+            props.setProperty("tokenha.cool.time.millis", "1000");
+            props.setProperty("tokenha.persistence.file.path", "tokenha-data.json");
+
+            // When - should throw IllegalArgumentException when "tokenha.number.of.last.tokens" is negative
+            try {
+                TokenHaConfig config = TokenHaConfig.fromProperties(props);
+                fail("Should throw IllegalArgumentException for negative number of last tokens");
+            } catch (IllegalArgumentException e) {
+                // Expected exception
+                assert e.getMessage().contains("Number of last tokens cannot be negative");                
+            }
+
+            props.setProperty("tokenha.expiration.time.millis", "60000");
+            props.setProperty("tokenha.number.of.last.tokens", "2");
+            props.setProperty("tokenha.max.tokens", "0");                // Cannot be negative or zero
+            props.setProperty("tokenha.cool.time.millis", "1000");
+            props.setProperty("tokenha.persistence.file.path", "tokenha-data.json");
+
+            // When - should throw IllegalArgumentException when "tokenha.max.tokens" is negative
+            try {
+                TokenHaConfig config = TokenHaConfig.fromProperties(props);
+                fail("Should throw IllegalArgumentException for non-positive max tokens");
+            } catch (IllegalArgumentException e) {
+                // Expected exception
+                assert e.getMessage().contains("Max tokens must be positive and non-zero");
+            }
+
+            props.setProperty("tokenha.expiration.time.millis", "60000");
+            props.setProperty("tokenha.number.of.last.tokens", "2");
+            props.setProperty("tokenha.max.tokens", "11");
+            props.setProperty("tokenha.cool.time.millis", "-1");
+            props.setProperty("tokenha.persistence.file.path", "tokenha-data.json");
+
+            // When - should throw IllegalArgumentException when "tokenha.cool.time.millis" is negative
+            try {
+                TokenHaConfig config = TokenHaConfig.fromProperties(props);
+                fail("Should throw IllegalArgumentException for negative cool time");
+            } catch (IllegalArgumentException e) {
+                // Expected exception
+                assert e.getMessage().contains("Cool time cannot be negative");
+            }
+
+            props.setProperty("tokenha.expiration.time.millis", "60000");
+            props.setProperty("tokenha.number.of.last.tokens", "2");
+            props.setProperty("tokenha.max.tokens", "11");
+            props.setProperty("tokenha.cool.time.millis", "1000");
+            props.setProperty("tokenha.persistence.file.path", "");
+
+            // When - should throw IllegalArgumentException when "tokenha.persistence.file.path" is empty
+            try {
+                TokenHaConfig config = TokenHaConfig.fromProperties(props);
+                fail("Should throw IllegalArgumentException for empty persistence file path");
+            } catch (IllegalArgumentException e) {
+                // Expected exception
+                assert e.getMessage().contains("Persistence file path cannot be null or empty");
             }
         }
     }

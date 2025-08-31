@@ -162,7 +162,7 @@ public class TokenHaConfig {
         
         public Builder expirationTimeMillis(long expirationTimeMillis) {
             if (expirationTimeMillis <= 0) {
-                throw new IllegalArgumentException("Expiration time must be positive");
+                throw new IllegalArgumentException("Expiration time must be positive and non-zero");
             }
             this.expirationTimeMillis = expirationTimeMillis;
             return this;
@@ -178,7 +178,7 @@ public class TokenHaConfig {
         
         public Builder maxTokens(int maxTokens) {
             if (maxTokens <= 0) {
-                throw new IllegalArgumentException("Max tokens must be positive");
+                throw new IllegalArgumentException("Max tokens must be positive and non-zero");
             }
             this.maxTokens = maxTokens;
             return this;
