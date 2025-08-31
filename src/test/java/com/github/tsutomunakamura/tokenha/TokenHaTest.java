@@ -55,9 +55,18 @@ public class TokenHaTest {
             tokenHa.close();
         }
     }
+
+    /**
+     * Helper method to set private field values using reflection for testing purposes.
+     */
+    private void setPrivateField(Object target, String fieldName, Object value) throws Exception {
+        Field field = target.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, value);
+    }
     
     @Test
-    @DisplayName("Should add token successfully when queue is empty and no cool time restriction")
+    @DisplayName("addIfAvailable() should add token successfully when queue is empty and no cool time restriction")
     void addIfAvailable_shouldAddToken_whenQueueIsEmpty() throws Exception {
         // Given
         String token = "test-token-1";
@@ -73,7 +82,7 @@ public class TokenHaTest {
     }
     
     @Test
-    @DisplayName("Should return false when cool time has not passed")
+    @DisplayName("addIfAvailable() should return false when cool time has not passed")
     void addIfAvailable_shouldReturnFalse_whenCoolTimeHasNotPassed() throws Exception {
         // Given
         String firstToken = "token-1";
@@ -92,7 +101,7 @@ public class TokenHaTest {
     }
     
     @Test
-    @DisplayName("Should add token successfully when cool time has passed")
+    @DisplayName("addIfAvailable() should add token successfully when cool time has passed")
     void addIfAvailable_shouldAddToken_whenCoolTimeHasPassed() throws Exception {
         // Given
         String firstToken = "token-1";
@@ -114,7 +123,7 @@ public class TokenHaTest {
     }
     
     @Test
-    @DisplayName("Should remove oldest token when queue is full")
+    @DisplayName("addIfAvailable() should remove oldest token when queue is full")
     void addIfAvailable_shouldRemoveOldestToken_whenQueueIsFull() throws Exception {
         // Given - fill the queue to maximum capacity (maxTokens = 10)
         for (int i = 1; i <= 3; i++) {
@@ -155,7 +164,7 @@ public class TokenHaTest {
     }
     
     @Test
-    @DisplayName("Should handle null token gracefully")
+    @DisplayName("addIfAvailable() should handle null token gracefully")
     void addIfAvailable_shouldHandleNullToken() throws Exception {
         // When
         boolean result = tokenHa.addIfAvailable(null);
@@ -167,7 +176,7 @@ public class TokenHaTest {
     }
     
     @Test
-    @DisplayName("Should handle empty string token")
+    @DisplayName("addIfAvailable() should handle empty string token")
     void addIfAvailable_shouldHandleEmptyStringToken() throws Exception {
         // When
         boolean result = tokenHa.addIfAvailable("");
@@ -179,7 +188,7 @@ public class TokenHaTest {
     }
     
     @Test
-    @DisplayName("Should persist token to file when added successfully")
+    @DisplayName("addIfAvailable() should persist token to file when added successfully")
     void addIfAvailable_shouldPersistToFile_whenTokenAddedSuccessfully() throws Exception {
         // Given
         String token = "persistent-token";
@@ -204,7 +213,7 @@ public class TokenHaTest {
     }
     
     @Test
-    @DisplayName("Should maintain FIFO order when adding multiple tokens")
+    @DisplayName("addIfAvailable() should maintain FIFO order when adding multiple tokens")
     void addIfAvailable_shouldMaintainFifoOrder() throws Exception {
         // Given
         String[] tokens = {"token-1", "token-2", "token-3"};
@@ -226,7 +235,7 @@ public class TokenHaTest {
     }
     
     @Test
-    @DisplayName("Should work correctly with concurrent access simulation")
+    @DisplayName("addIfAvailable() should work correctly with concurrent access simulation")
     void addIfAvailable_shouldHandleConcurrentAccess() throws Exception {
         // This test simulates concurrent access by using reflection to manipulate state
         // Given
@@ -244,18 +253,9 @@ public class TokenHaTest {
         assertFalse(result2, "Second token should be rejected due to cool time");
         assertEquals(1, tokenHa.getQueueSize(), "Only one token should be in queue");
     }
-    
-    /**
-     * Helper method to set private field values using reflection for testing purposes.
-     */
-    private void setPrivateField(Object target, String fieldName, Object value) throws Exception {
-        Field field = target.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
-    }
-    
+        
     @Test
-    @DisplayName("Should respect custom cool time configuration")
+    @DisplayName("addIfAvailable() should respect custom cool time configuration")
     void addIfAvailable_shouldRespectCustomCoolTime() throws Exception {
         // Given - set a shorter cool time for faster testing
         setPrivateField(tokenHa, "coolTimeToAddMillis", 500L);
@@ -278,7 +278,7 @@ public class TokenHaTest {
     }
     
     @Test
-    @DisplayName("Should handle very long token strings")
+    @DisplayName("addIfAvailable() should handle very long token strings")
     void addIfAvailable_shouldHandleLongTokenStrings() throws Exception {
         // Given
         StringBuilder longTokenBuilder = new StringBuilder();
@@ -297,7 +297,7 @@ public class TokenHaTest {
     }
     
     @Test
-    @DisplayName("Should handle special characters in tokens")
+    @DisplayName("addIfAvailable() should handle special characters in tokens")
     void addIfAvailable_shouldHandleSpecialCharacters() throws Exception {
         // Given
         String specialToken = "token-with-special-chars: !@#$%^&*()[]{}|;':\",./<>?`~";
@@ -312,7 +312,7 @@ public class TokenHaTest {
     }
     
     @Test
-    @DisplayName("Should maintain thread safety with synchronized method")
+    @DisplayName("addIfAvailable() should maintain thread safety with synchronized method")
     void addIfAvailable_shouldBeSynchronized() throws Exception {
         // This test verifies that the method is synchronized by checking that multiple
         // rapid calls don't interfere with each other due to cool time restrictions
@@ -332,9 +332,10 @@ public class TokenHaTest {
         assertEquals(token1, tokenHa.newestToken().getToken(), "Only first token should be present");
     }
 
-    // TODO: Test cases for "public boolean availableToAdd()"
+    // Test cases for "public boolean availableToAdd()"
+
     @Test
-    @DisplayName("availableToAdd should return true when queue is not full and cool time has passed")
+    @DisplayName("availableToAdd() should return true when queue is not full and cool time has passed")
     void availableToAdd_shouldReturnTrue_whenQueueNotFullAndCoolTimePassed() {
         // Given
         String token = "test-token";
@@ -345,7 +346,7 @@ public class TokenHaTest {
     }
 
     @Test
-    @DisplayName("availableToAdd should return false when queue is full")
+    @DisplayName("availableToAdd() should return false when queue is full")
     void availableToAdd_shouldReturnFalse_whenQueueIsFull() {
         // Given - fill the queue to maximum capacity (maxTokens = 10)
         for (int i = 1; i <= 3; i++) {
@@ -358,7 +359,7 @@ public class TokenHaTest {
     }
 
     @Test
-    @DisplayName("availableToAdd should return false when cool time has not passed")
+    @DisplayName("availableToAdd() should return false when cool time has not passed")
     void availableToAdd_shouldReturnFalse_whenCoolTimeNotPassed() {
         // Given
         String token = "test-token";
@@ -368,8 +369,9 @@ public class TokenHaTest {
     }
 
     // Test cases for "public List<TokenElement> evictExpiredTokens()"
+
     @Test
-    @DisplayName("evictExpiredTokens should remove expired tokens and return them")
+    @DisplayName("evictExpiredTokens() should remove expired tokens and return them")
     void evictExpiredTokens_shouldRemoveExpiredTokens() throws Exception {
         tokenHa.addIfAvailable("token-1");
 
@@ -393,7 +395,7 @@ public class TokenHaTest {
     }
 
     @Test
-    @DisplayName("evictExpiredTokens should not remove last tokens even if expired")
+    @DisplayName("evictExpiredTokens() should not remove last tokens even if expired")
     void evictExpiredTokens_shouldNotRemoveLastTokens() throws Exception {
         tokenHa.addIfAvailable("token-1");
         Thread.sleep(1100);
@@ -412,7 +414,7 @@ public class TokenHaTest {
     // Test cases for "public void loadFromFile() throws IOException"
 
     @Test
-    @DisplayName("loadFromFile should load tokens from existing file")
+    @DisplayName("loadFromFile() should load tokens from existing file")
     void loadFromFile_shouldLoadTokensFromFile() throws Exception {
         tokenHa.deletePersistenceFile();
         tokenHa.close();
@@ -444,24 +446,8 @@ public class TokenHaTest {
         }
     }
 
-    // // Skipped test. When TokenHa has initialized, an empty file is created. So this test is not valid.
-    // @Test
-    // @DisplayName("loadFromFile should handle non-existent file gracefully")
-    // void loadFromFile_shouldHandleNonExistentFile() throws Exception {
-    //     tokenHa.close();
-
-    //     // Ensure the file does not exist
-    //     java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get("test-tokenha-data.json"));
-
-    //     // Create a new instance to load from the non-existent file
-    //     try (TokenHa newTokenHa = new TokenHa(config)) {
-    //         newTokenHa.loadFromFile();
-    //         assertEquals(0, newTokenHa.getQueueSize(), "New instance should have 0 tokens when file does not exist");
-    //     }
-    // }
-
     @Test
-    @DisplayName("loadFromFile should handle malformed JSON gracefully")
+    @DisplayName("loadFromFile() should handle malformed JSON gracefully")
     void loadFromFile_shouldHandleMalformedJson() throws Exception {
         tokenHa.close();
 
@@ -477,7 +463,7 @@ public class TokenHaTest {
     }
 
     @Test
-    @DisplayName("loadFromFile should remove oldest tokens if loaded tokens exceed maxTokens")
+    @DisplayName("loadFromFile() should remove oldest tokens if loaded tokens exceed maxTokens")
     void loadFromFile_shouldRemoveOldestIfExceedMaxTokens() throws Exception {
         tokenHa.close();
 
