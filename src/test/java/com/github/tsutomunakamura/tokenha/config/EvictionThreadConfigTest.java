@@ -74,21 +74,24 @@ public class EvictionThreadConfigTest {
     // Test cases for fromEnvironment() method
 
     @Test
-    @DisplayName("fromEnvironment() should set initialDelayMillis with default value when builder.initialDelayMillis(initialDelay) throws IllegalArgumentException")
+    @DisplayName("fromEnvironment() should throw IllegalArgumentException when TOKENHA_EVICTION_INITIAL_DELAY_MILLIS is invalid")
     void testFromEnvironmentWithInvalidInitialDelay() {
         // Fake environment variables by using SystemStubs.
         // https://www.baeldung.com/java-system-stubs
         environmentVariables.set("TOKENHA_EVICTION_INITIAL_DELAY_MILLIS", "-1000"); // Invalid negative value
         environmentVariables.set("TOKENHA_EVICTION_INTERVAL_MILLIS", "25000");
         // When
-        EvictionThreadConfig config = EvictionThreadConfig.fromEnvironment();
-        // Then - verify that default is used for invalid initial delay
-        assert config.getInitialDelayMillis() == 1000; // Default value
-        assert config.getIntervalMillis() == 25000; // From environment
+        try {
+            EvictionThreadConfig.fromEnvironment();
+            assert false : "Expected IllegalArgumentException for invalid initial delay";
+        } catch (IllegalArgumentException e) {
+            // Expected exception
+            assert e.getMessage().contains("Initial delay cannot be negative");
+        }
     }
 
     @Test
-    @DisplayName("fromEnvironment() should set intervalMillis with default value when builder.intervalMillis(interval) throws IllegalArgumentException")
+    @DisplayName("fromEnvironment() should throw IllegalArgumentException when TOKENHA_EVICTION_INTERVAL_MILLIS is invalid")
     void testFromEnvironmentWithInvalidInterval() {
         // Fake environment variables by using SystemStubs.
         // https://www.baeldung.com/java/system-stubs
@@ -96,10 +99,12 @@ public class EvictionThreadConfigTest {
         environmentVariables.set("TOKENHA_EVICTION_INTERVAL_MILLIS", "-2000"); // Invalid negative value
 
         // When
-        EvictionThreadConfig config = EvictionThreadConfig.fromEnvironment();
-
-        // Then - verify that default is used for invalid interval
-        assert config.getInitialDelayMillis() == 4000; // From environment
-        assert config.getIntervalMillis() == 10000; // Default value
+        try {
+            EvictionThreadConfig.fromEnvironment();
+            assert false : "Expected IllegalArgumentException for invalid interval";
+        } catch (IllegalArgumentException e) {
+            // Expected exception
+            assert e.getMessage().contains("Interval must be positive");
+        }
     }
 }
