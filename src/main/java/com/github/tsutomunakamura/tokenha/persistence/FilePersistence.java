@@ -104,7 +104,7 @@ public class FilePersistence implements AutoCloseable {
      * File remains open and data is flushed immediately to prevent data loss.
      * @param jsonData the JSON string to save
      */
-    public void save(String jsonData) {
+    public synchronized void save(String jsonData) {
         if (persistenceFile == null) {
             throw new IllegalStateException("Persistence file not initialized. Cannot save data.");
         }

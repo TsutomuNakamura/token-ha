@@ -38,6 +38,8 @@ public class TokenHa implements AutoCloseable {
     
     // Gson for JSON serialization/deserialization
     private static final Gson gson = new Gson();
+
+    private Iterator<TokenElement> descIterator;
     
     /**
      * Constructor with default configuration.
@@ -64,7 +66,7 @@ public class TokenHa implements AutoCloseable {
         filePersistence = new FilePersistence(persistenceFilePath);
     }
 
-    public synchronized boolean addIfAvailable(String token) {
+    public boolean addIfAvailable(String token) {
         if (!passedCoolTimeToAdd()) {
             return false;
         }
@@ -80,6 +82,11 @@ public class TokenHa implements AutoCloseable {
     private synchronized void add(String token) {
         fifoQueue.add(new TokenElement(token, System.currentTimeMillis()));
         filePersistence.save(toJson());
+        generateDescIterator(fifoQueue);
+    }
+
+    public synchronized void generateDescIterator(Deque<TokenElement> queue) {
+        descIterator = queue.descendingIterator();
     }
 
     public TokenElement newestToken() {
@@ -120,7 +127,7 @@ public class TokenHa implements AutoCloseable {
         return true;
     }
 
-    public List<TokenElement> evictExpiredTokens() {
+    public synchronized List<TokenElement> evictExpiredTokens() {
         List<TokenElement> expiredTokens = new ArrayList<>();
 
         long currentTime = System.currentTimeMillis();
@@ -139,7 +146,13 @@ public class TokenHa implements AutoCloseable {
             }
         }
 
-        return expiredTokens.size() > 0 ? expiredTokens : null;
+        if (expiredTokens.size() == 0) {
+            return null;
+        }
+
+        filePersistence.save(toJson());
+        generateDescIterator(fifoQueue);
+        return expiredTokens;
     }
     
     /**
