@@ -94,7 +94,8 @@ public class TokenHa implements AutoCloseable {
     }
 
     public Iterator<TokenElement> getDescIterator() {
-        return fifoQueue.descendingIterator();
+        // return fifoQueue.descendingIterator();
+        return descIterator;
     }
 
     public int getQueueSize() {
