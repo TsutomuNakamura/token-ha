@@ -2,6 +2,8 @@ package com.github.tsutomunakamura.tokenha.eviction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -26,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.github.tsutomunakamura.tokenha.TokenHa;
+import com.github.tsutomunakamura.tokenha.config.EvictionThreadConfig;
 import com.github.tsutomunakamura.tokenha.element.TokenElement;
 
 /**
@@ -1044,4 +1047,175 @@ public class EvictionThreadTest {
         clearRegisteredInstances();
     }
     
+    // Test cases for improving coverage of getInstance() method
+    
+    @Test
+    @DisplayName("Test getInstance() creates new instance when INSTANCE is null")
+    public void testGetInstanceCreatesNewInstance() throws Exception {
+        System.out.println("🧪 TEST: getInstance() creates new instance when INSTANCE is null");
+        
+        // Reset the singleton instance to null using reflection
+        Field instanceField = EvictionThread.class.getDeclaredField("INSTANCE");
+        instanceField.setAccessible(true);
+        instanceField.set(null, null);
+        
+        // Verify INSTANCE is null
+        assertNull(instanceField.get(null), "INSTANCE should be null before getInstance()");
+        
+        // Call getInstance() - should create new instance
+        EvictionThread instance = EvictionThread.getInstance();
+        
+        // Verify instance was created
+        assertNotNull(instance, "getInstance() should create new instance");
+        assertNotNull(instanceField.get(null), "INSTANCE field should be set");
+        assertEquals(instance, instanceField.get(null), "Returned instance should match INSTANCE field");
+        
+        // Verify it uses default config
+        assertNotNull(instance.getConfig(), "Instance should have a config");
+        assertEquals(EvictionThreadConfig.defaultConfig().getInitialDelayMillis(), 
+            instance.getConfig().getInitialDelayMillis(), 
+            "Should use default config");
+    }
+    
+    @Test
+    @DisplayName("Test getInstance() synchronized block with concurrent threads when INSTANCE is null")
+    public void testGetInstanceSynchronizedBlockConcurrency() throws Exception {
+        System.out.println("🧪 TEST: getInstance() synchronized block with concurrent threads when INSTANCE is null");
+        
+        // Reset the singleton instance to null
+        Field instanceField = EvictionThread.class.getDeclaredField("INSTANCE");
+        instanceField.setAccessible(true);
+        instanceField.set(null, null);
+        
+        // Verify starting with null INSTANCE
+        assertNull(instanceField.get(null), "INSTANCE should be null initially");
+        
+        final int numThreads = 10;
+        Thread[] threads = new Thread[numThreads];
+        EvictionThread[] instances = new EvictionThread[numThreads];
+        
+        // Create threads that all call getInstance() simultaneously
+        for (int i = 0; i < numThreads; i++) {
+            final int index = i;
+            threads[i] = new Thread(() -> {
+                instances[index] = EvictionThread.getInstance();
+            });
+        }
+        
+        // Start all threads at once
+        for (Thread thread : threads) {
+            thread.start();
+        }
+        
+        // Wait for all threads to complete
+        for (Thread thread : threads) {
+            thread.join();
+        }
+        
+        // Verify all threads got the same instance (singleton pattern)
+        EvictionThread firstInstance = instances[0];
+        assertNotNull(firstInstance, "First instance should not be null");
+        
+        for (int i = 1; i < numThreads; i++) {
+            assertEquals(firstInstance, instances[i], 
+                "All threads should get the same singleton instance");
+        }
+        
+        // Verify INSTANCE field is set
+        assertNotNull(instanceField.get(null), "INSTANCE field should be set");
+        assertEquals(firstInstance, instanceField.get(null), 
+            "INSTANCE field should match returned instances");
+    }
+    
+    @Test
+    @DisplayName("Test getInstance() enters synchronized block when INSTANCE is initially null")
+    public void testGetInstanceEntersSynchronizedBlock() throws Exception {
+        System.out.println("🧪 TEST: getInstance() enters synchronized block when INSTANCE is initially null");
+        
+        // Reset singleton to null
+        Field instanceField = EvictionThread.class.getDeclaredField("INSTANCE");
+        instanceField.setAccessible(true);
+        instanceField.set(null, null);
+        
+        // Get the LOCK object for synchronization
+        Field lockField = EvictionThread.class.getDeclaredField("LOCK");
+        lockField.setAccessible(true);
+        Object lock = lockField.get(null);
+        
+        // Start a thread that holds the lock
+        Thread blockingThread = new Thread(() -> {
+            synchronized (lock) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        });
+        
+        blockingThread.start();
+        Thread.sleep(10); // Ensure blocking thread gets the lock first
+        
+        // Now try to get instance - should wait for lock then create instance
+        long startTime = System.currentTimeMillis();
+        EvictionThread instance = EvictionThread.getInstance();
+        long endTime = System.currentTimeMillis();
+        
+        // Should have waited for the lock (at least some delay)
+        assertTrue(endTime - startTime >= 50, 
+            "Should have waited for lock before creating instance");
+        
+        assertNotNull(instance, "Instance should be created after acquiring lock");
+        assertNotNull(instanceField.get(null), "INSTANCE field should be set");
+        
+        blockingThread.join();
+    }
+    
+    @Test
+    @DisplayName("Test getInstance() double-checked locking pattern when INSTANCE becomes non-null during wait")
+    public void testGetInstanceDoubleCheckedLocking() throws Exception {
+        System.out.println("🧪 TEST: getInstance() double-checked locking pattern");
+        
+        // Reset singleton to null
+        Field instanceField = EvictionThread.class.getDeclaredField("INSTANCE");
+        instanceField.setAccessible(true);
+        instanceField.set(null, null);
+        
+        Field lockField = EvictionThread.class.getDeclaredField("LOCK");
+        lockField.setAccessible(true);
+        Object lock = lockField.get(null);
+        
+        EvictionThread[] capturedInstance = new EvictionThread[1];
+        
+        // Thread 1: Will get the lock first and create instance
+        Thread firstThread = new Thread(() -> {
+            capturedInstance[0] = EvictionThread.getInstance();
+        });
+        
+        // Thread 2: Will wait for lock, but instance will already be created
+        Thread secondThread = new Thread(() -> {
+            try {
+                Thread.sleep(50); // Let first thread get lock
+                EvictionThread instance = EvictionThread.getInstance();
+                // Should get the same instance created by first thread
+                assertEquals(capturedInstance[0], instance, 
+                    "Second thread should get instance created by first thread");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        
+        // Start both threads
+        firstThread.start();
+        secondThread.start();
+        
+        // Wait for completion
+        firstThread.join();
+        secondThread.join();
+        
+        // Verify single instance was created
+        assertNotNull(capturedInstance[0], "Instance should be created");
+        assertEquals(capturedInstance[0], instanceField.get(null), 
+            "INSTANCE field should match created instance");
+    }
 }
