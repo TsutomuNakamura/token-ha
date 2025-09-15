@@ -412,9 +412,12 @@ public class TokenHaTest {
         assertEquals(2, tokenHa.getQueueSize(), "Should have 2 tokens before eviction");
         assertEquals("token-2", tokenHa.newestToken().getToken(), "Newest token should be token-2");
 
-        Iterator<TokenElement> descIterator = tokenHa.getDescIterator();
-        assertEquals("token-2", descIterator.next().getToken(), "First element of desc iterator should be token-2");
-        assertEquals("token-1", descIterator.next().getToken(), "Second element of desc iterator should be token-1");
+        // Verify order using getDescList()
+        List<TokenElement> descList = tokenHa.getDescList();
+        assertFalse(descList.isEmpty(), "List should not be empty");
+        assertEquals(2, descList.size(), "List should have 2 elements");
+        assertEquals("token-2", descList.get(0).getToken(), "First element of desc list should be token-2");
+        assertEquals("token-1", descList.get(1).getToken(), "Second element of desc list should be token-1");
 
         Thread.sleep(8000); // Wait 8 seconds (total 13 seconds since token-1 added)
 
