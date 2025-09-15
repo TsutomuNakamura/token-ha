@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Iterator;
+import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -147,7 +148,7 @@ public class TokenHaTest {
     @Test
     @DisplayName("addIfAvailable() should remove oldest token when queue is full")
     void addIfAvailable_shouldRemoveOldestToken_whenQueueIsFull() throws Exception {
-        // Given - fill the queue to maximum capacity (maxTokens = 10)
+        // Given - fill the queue to maximum capacity (maxTokens = 3)
         for (int i = 1; i <= 3; i++) {
             tokenHa.addIfAvailable("token-" + i);
             if (i < 3) {
@@ -169,15 +170,17 @@ public class TokenHaTest {
         assertEquals(3, tokenHa.getQueueSize(), "Queue size should remain at maximum");
         assertEquals(newToken, tokenHa.newestToken().getToken(), "Newest token should be the latest added");
         
-        // Verify that the oldest token was removed
-        Iterator<TokenElement> iterator = tokenHa.getDescIterator();
-        TokenElement newest = iterator.next();
+        // Verify that the oldest token was removed using getDescList()
+        List<TokenElement> descList = tokenHa.getDescList();
+        assertFalse(descList.isEmpty(), "List should not be empty");
+        
+        TokenElement newest = descList.get(0);
         assertEquals("token-4", newest.getToken(), "First element should be newest");
         
         // Check that token-1 (oldest) is no longer in the queue
         boolean foundToken1 = false;
-        while (iterator.hasNext()) {
-            if ("token-1".equals(iterator.next().getToken())) {
+        for (TokenElement element : descList) {
+            if ("token-1".equals(element.getToken())) {
                 foundToken1 = true;
                 break;
             }
@@ -249,11 +252,14 @@ public class TokenHaTest {
         // Then
         assertEquals(3, tokenHa.getQueueSize(), "Queue should have 3 tokens");
         
-        // Check FIFO order using descending iterator (newest to oldest)
-        Iterator<TokenElement> iterator = tokenHa.getDescIterator();
-        assertEquals("token-3", iterator.next().getToken(), "First should be newest");
-        assertEquals("token-2", iterator.next().getToken(), "Second should be middle");
-        assertEquals("token-1", iterator.next().getToken(), "Third should be oldest");
+        // Check FIFO order using descending list (newest to oldest)
+        List<TokenElement> descList = tokenHa.getDescList();
+        assertFalse(descList.isEmpty(), "List should not be empty");
+        assertEquals(3, descList.size(), "List should have 3 elements");
+        
+        assertEquals("token-3", descList.get(0).getToken(), "First should be newest");
+        assertEquals("token-2", descList.get(1).getToken(), "Second should be middle");
+        assertEquals("token-1", descList.get(2).getToken(), "Third should be oldest");
     }
     
     @Test
