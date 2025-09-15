@@ -39,8 +39,9 @@ public class TokenHa implements AutoCloseable {
     // Gson for JSON serialization/deserialization
     private static final Gson gson = new Gson();
 
-    // Strategy 1: Cached snapshot for iteration
+    // Strategy 2: Cached unmodifiable snapshot for optimal performance
     private List<TokenElement> snapshotList = new ArrayList<>();
+    private List<TokenElement> unmodifiableSnapshot = Collections.emptyList();
     
     /**
      * Constructor with default configuration.
@@ -97,14 +98,17 @@ public class TokenHa implements AutoCloseable {
      * Internal method to update the snapshot after queue modifications.
      * This creates a new snapshot list for thread-safe iteration.
      * The snapshot provides elements in descending order (newest to oldest).
+     * Creates an unmodifiable view for optimal performance on reads.
      */
     private void updateSnapshot() {
         // Create and prepare the new snapshot in a local variable first
         List<TokenElement> newSnapshot = new ArrayList<>(fifoQueue);
         // Reverse to get descending order (newest first)
         Collections.reverse(newSnapshot);
-        // Atomically replace the snapshot - this ensures getDescList() always gets a complete snapshot
+        // Atomically replace the snapshot
         snapshotList = newSnapshot;
+        // Create unmodifiable view once - this avoids allocation on getDescList() calls
+        unmodifiableSnapshot = Collections.unmodifiableList(snapshotList);
     }
 
     /**
@@ -116,15 +120,15 @@ public class TokenHa implements AutoCloseable {
     }
 
     /**
-     * Get a list of tokens in descending order (newest to oldest).
-     * Returns a copy of the snapshot to prevent external modifications.
+     * Get an unmodifiable list of tokens in descending order (newest to oldest).
+     * Returns a cached unmodifiable view with zero allocation overhead.
      * The list is thread-safe and won't throw ConcurrentModificationException.
      * 
-     * @return List for read-only traversal in descending order
+     * @return Unmodifiable list for read-only traversal in descending order
      */
     public synchronized List<TokenElement> getDescList() {
-        // Return a defensive copy of the snapshot list
-        return new ArrayList<>(snapshotList);
+        // Return the cached unmodifiable view - zero allocation, O(1) performance
+        return unmodifiableSnapshot;
     }
 
     /**
