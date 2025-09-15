@@ -2,6 +2,7 @@ package com.github.tsutomunakamura.tokenha;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -97,10 +98,15 @@ public class TokenHa implements AutoCloseable {
     /**
      * Internal method to update the snapshot after queue modifications.
      * This creates a new snapshot list and iterator for thread-safe iteration.
+     * The iterator provides elements in descending order (newest to oldest).
      */
     private void updateSnapshot() {
+        // Create snapshot from the queue
         snapshotList = new ArrayList<>(fifoQueue);
-        descIterator = snapshotList.descendingIterator();
+        // Reverse to get descending order (newest first)
+        Collections.reverse(snapshotList);
+        // Create iterator from the reversed list
+        descIterator = snapshotList.iterator();
     }
 
     /**
