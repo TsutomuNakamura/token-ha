@@ -42,7 +42,6 @@ public class TokenHa implements AutoCloseable {
 
     // Strategy 1: Cached snapshot for iteration
     private List<TokenElement> snapshotList = new ArrayList<>();
-    private Iterator<TokenElement> descIterator;
     
     /**
      * Constructor with default configuration.
@@ -97,25 +96,15 @@ public class TokenHa implements AutoCloseable {
 
     /**
      * Internal method to update the snapshot after queue modifications.
-     * This creates a new snapshot list and iterator for thread-safe iteration.
-     * The iterator provides elements in descending order (newest to oldest).
+     * This creates a new snapshot list for thread-safe iteration.
+     * The snapshot provides elements in descending order (newest to oldest).
      */
     private void updateSnapshot() {
         // Create snapshot from the queue
         snapshotList = new ArrayList<>(fifoQueue);
         // Reverse to get descending order (newest first)
         Collections.reverse(snapshotList);
-        // Create iterator from the reversed list
-        descIterator = snapshotList.iterator();
-    }
-
-    /**
-     * @deprecated Use updateSnapshot() internally instead.
-     * This method is kept for backward compatibility.
-     */
-    @Deprecated
-    public synchronized void generateDescIterator(Deque<TokenElement> queue) {
-        updateSnapshot();
+        // No need to create iterator here
     }
 
     /**
@@ -127,14 +116,24 @@ public class TokenHa implements AutoCloseable {
     }
 
     /**
-     * Get a descending iterator over the tokens.
-     * This returns a pre-computed iterator from the last snapshot.
-     * The iterator is thread-safe and won't throw ConcurrentModificationException.
+     * Get a list of tokens in descending order (newest to oldest).
+     * Returns a copy of the snapshot to prevent external modifications.
+     * The list is thread-safe and won't throw ConcurrentModificationException.
      * 
-     * @return Iterator for read-only traversal in descending order
+     * @return List for read-only traversal in descending order
      */
-    public Iterator<TokenElement> getDescIterator() {
-        return descIterator;
+    public synchronized List<TokenElement> getDescList() {
+        // Return a defensive copy of the snapshot list
+        return new ArrayList<>(snapshotList);
+    }
+
+    /**
+     * @deprecated Use getDescList() instead. This method name is misleading as it now returns a List.
+     * @return List of tokens in descending order
+     */
+    @Deprecated
+    public synchronized Iterator<TokenElement> getDescIterator() {
+        return getDescList().iterator();
     }
 
     /**
