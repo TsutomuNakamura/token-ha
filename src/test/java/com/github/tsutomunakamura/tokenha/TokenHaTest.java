@@ -527,10 +527,14 @@ public class TokenHaTest {
             newTokenHa.loadFromFile();
 
             assertEquals(3, newTokenHa.getQueueSize(), "New instance should load only maxTokens (3) from file");
-            Iterator<TokenElement> iterator = newTokenHa.getDescIterator();
-            assertEquals("token-4", iterator.next().getToken(), "First token should be token-4");
-            assertEquals("token-3", iterator.next().getToken(), "Second token should be token-3");
-            assertEquals("token-2", iterator.next().getToken(), "Third token should be token-2");
+            
+            // Use getDescList() instead of getDescIterator()
+            List<TokenElement> descList = newTokenHa.getDescList();
+            assertFalse(descList.isEmpty(), "List should not be empty");
+            assertEquals(3, descList.size(), "List should have 3 elements");
+            assertEquals("token-4", descList.get(0).getToken(), "First token should be token-4");
+            assertEquals("token-3", descList.get(1).getToken(), "Second token should be token-3");
+            assertEquals("token-2", descList.get(2).getToken(), "Third token should be token-2");
         }
     }
 
