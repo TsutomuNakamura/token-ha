@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Comprehensive demonstration of the TokenHa library features as test cases.
@@ -98,14 +99,15 @@ public class DemoTest {
         assertNotNull(newest, "Should have a newest token");
         assertEquals("token3", newest.getToken(), "Newest should be token3");
         
-        // Test iterator (newest to oldest)
-        Iterator<TokenElement> iter = tokenHa.getDescIterator();
-        assertTrue(iter.hasNext(), "Iterator should have elements");
+        // Test descending list (newest to oldest)
+        List<TokenElement> descList = tokenHa.getDescList();
+        assertFalse(descList.isEmpty(), "List should not be empty");
+        assertEquals(3, descList.size(), "List should have 3 elements");
         
         int count = 0;
         String[] expectedOrder = {"token3", "token2", "token1"};
-        while (iter.hasNext()) {
-            TokenElement element = iter.next();
+        for (TokenElement element : descList) {
+            assertTrue(count < expectedOrder.length, "Should not exceed expected array bounds");
             assertEquals(expectedOrder[count], element.getToken(), 
                 "Token order should be newest to oldest");
             count++;
