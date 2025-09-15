@@ -50,7 +50,7 @@ public class DemoTest {
     }
     
     @Test
-    @Disabled("Demo test - run manually to see library usage examples")
+    @Disabled("Run manyalli with \"mvn test -Dtest=DemoTest#testBasicTokenOperations -Djunit.jupiter.conditions.deactivate=org.junit.*DisabledCondition\"")
     public void testBasicTokenOperations() throws InterruptedException {
         System.out.println("=== Test: Basic Token Operations ===");
         
@@ -78,7 +78,7 @@ public class DemoTest {
     }
     
     @Test
-    @Disabled("Demo test - run manually to see library usage examples")
+    @Disabled("Run manually with \"mvn test -Dtest=DemoTest#testQueueStateAndNavigation -Djunit.jupiter.conditions.deactivate=org.junit.*DisabledCondition\"")
     public void testQueueStateAndNavigation() throws InterruptedException {
         System.out.println("=== Test: Queue State and Navigation ===");
         
@@ -116,7 +116,7 @@ public class DemoTest {
     }
     
     @Test
-    @Disabled("Demo test - run manually to see library usage examples")
+    @Disabled("Run manually with \"mvn test -Dtest=DemoTest#testCooldownMechanism -Djunit.jupiter.conditions.deactivate=org.junit.*DisabledCondition\"")
     public void testCooldownMechanism() throws InterruptedException {
         System.out.println("=== Test: Cooldown Mechanism ===");
         
@@ -138,7 +138,7 @@ public class DemoTest {
     }
     
     @Test
-    @Disabled("Demo test - run manually to see library usage examples")
+    @Disabled("Run manually with \"mvn test -Dtest=DemoTest#testJsonSerializationWithGson -Djunit.jupiter.conditions.deactivate=org.junit.*DisabledCondition\"")
     public void testJsonSerializationWithGson() throws InterruptedException {
         System.out.println("=== Test: JSON Serialization with Gson ===");
         
@@ -167,7 +167,7 @@ public class DemoTest {
     }
     
     @Test
-    @Disabled("Demo test - run manually to see library usage examples")
+    @Disabled("Run manually with \"mvn test -Dtest=DemoTest#testFilePersistenceWithDeserialization -Djunit.jupiter.conditions.deactivate=org.junit.*DisabledCondition\"")
     public void testFilePersistenceWithDeserialization() throws InterruptedException {
         System.out.println("=== Test: File Persistence with Gson Deserialization ===");
         
@@ -214,7 +214,7 @@ public class DemoTest {
     }
     
     @Test
-    @Disabled("Demo test - run manually to see library usage examples")
+    @Disabled("Run manually with \"mvn test -Dtest=DemoTest#testTokenEviction -Djunit.jupiter.conditions.deactivate=org.junit.*DisabledCondition\"")
     public void testTokenEviction() throws InterruptedException {
         System.out.println("=== Test: Token Eviction ===");
         
@@ -231,7 +231,7 @@ public class DemoTest {
     }
     
     @Test
-    @Disabled("Demo test - run manually to see library usage examples")
+    @Disabled("Run manually with \"mvn test -Dtest=DemoTest#testOverflowBehaviorWithDeserialization -Djunit.jupiter.conditions.deactivate=org.junit.*DisabledCondition\"")
     public void testOverflowBehaviorWithDeserialization() throws InterruptedException {
         System.out.println("=== Test: Overflow Behavior with Deserialization ===");
         
@@ -285,7 +285,7 @@ public class DemoTest {
     }
     
     @Test
-    @Disabled("Demo test - run manually to see library usage examples")
+    @Disabled("Run manually with \"mvn test -Dtest=DemoTest#testCompleteWorkflow -Djunit.jupiter.conditions.deactivate=org.junit.*DisabledCondition\"")
     public void testCompleteWorkflow() throws InterruptedException {
         System.out.println("=== Test: Complete TokenHa Workflow ===");
         

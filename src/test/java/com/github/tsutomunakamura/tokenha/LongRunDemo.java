@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +18,7 @@ public class LongRunDemo {
     
     @Test
     @DisplayName("Long run demo")
+    @Disabled("Run manually with \\\"mvn test -Dtest=LongRunDemo#longRunDemo -Djunit.jupiter.conditions.deactivate=org.junit.*DisabledCondition\\\"")
     void longRunDemo() throws InterruptedException, IOException {
         /**
          * This is a long run demonstration of TokenHa usage.
