@@ -39,6 +39,8 @@ public class TokenHa implements AutoCloseable {
     // Gson for JSON serialization/deserialization
     private static final Gson gson = new Gson();
 
+    // Strategy 1: Cached snapshot for iteration
+    private List<TokenElement> snapshotList = new ArrayList<>();
     private Iterator<TokenElement> descIterator;
     
     /**
@@ -64,9 +66,16 @@ public class TokenHa implements AutoCloseable {
         
         EvictionThread.getInstance(config.getEvictionThreadConfig()).register(this);
         filePersistence = new FilePersistence(persistenceFilePath);
+        
+        // Initialize snapshot
+        updateSnapshot();
     }
 
-    public boolean addIfAvailable(String token) {
+    /**
+     * Add token if available according to cool time and max tokens constraints.
+     * This method is now synchronized to prevent race conditions.
+     */
+    public synchronized boolean addIfAvailable(String token) {
         if (!passedCoolTimeToAdd()) {
             return false;
         }
@@ -74,31 +83,59 @@ public class TokenHa implements AutoCloseable {
         if (isFilled()) {
             fifoQueue.poll();
         }
-        add(token);
+        
+        // Add the new token
+        fifoQueue.add(new TokenElement(token, System.currentTimeMillis()));
+        filePersistence.save(toJson());
+        
+        // Update snapshot after modification
+        updateSnapshot();
 
         return true;
     }
 
-    private synchronized void add(String token) {
-        fifoQueue.add(new TokenElement(token, System.currentTimeMillis()));
-        filePersistence.save(toJson());
-        generateDescIterator(fifoQueue);
+    /**
+     * Internal method to update the snapshot after queue modifications.
+     * This creates a new snapshot list and iterator for thread-safe iteration.
+     */
+    private void updateSnapshot() {
+        snapshotList = new ArrayList<>(fifoQueue);
+        descIterator = snapshotList.descendingIterator();
     }
 
+    /**
+     * @deprecated Use updateSnapshot() internally instead.
+     * This method is kept for backward compatibility.
+     */
+    @Deprecated
     public synchronized void generateDescIterator(Deque<TokenElement> queue) {
-        descIterator = queue.descendingIterator();
+        updateSnapshot();
     }
 
-    public TokenElement newestToken() {
+    /**
+     * Get the newest token in the queue.
+     * Synchronized for thread-safe read.
+     */
+    public synchronized TokenElement newestToken() {
         return fifoQueue.peekLast();
     }
 
+    /**
+     * Get a descending iterator over the tokens.
+     * This returns a pre-computed iterator from the last snapshot.
+     * The iterator is thread-safe and won't throw ConcurrentModificationException.
+     * 
+     * @return Iterator for read-only traversal in descending order
+     */
     public Iterator<TokenElement> getDescIterator() {
-        // return fifoQueue.descendingIterator();
         return descIterator;
     }
 
-    public int getQueueSize() {
+    /**
+     * Get the current queue size.
+     * Synchronized for thread-safe read.
+     */
+    public synchronized int getQueueSize() {
         return fifoQueue.size();
     }
 
@@ -110,24 +147,40 @@ public class TokenHa implements AutoCloseable {
         }
     }
 
-    public boolean availableToAdd() {
+    /**
+     * Check if available to add a new token.
+     * Synchronized for consistent read of multiple conditions.
+     */
+    public synchronized boolean availableToAdd() {
         return !isFilled() && passedCoolTimeToAdd();
     }
 
-    public boolean isFilled() {
+    /**
+     * Check if the queue is filled to capacity.
+     * Made synchronized for thread-safe read.
+     */
+    public synchronized boolean isFilled() {
         return fifoQueue.size() >= maxTokens;
     }
 
-    public boolean passedCoolTimeToAdd() {
+    /**
+     * Check if enough time has passed since the last token was added.
+     * Made synchronized for thread-safe read.
+     */
+    public synchronized boolean passedCoolTimeToAdd() {
         TokenElement newestToken = fifoQueue.peekLast();
         if (newestToken != null) {
             long currentTime = System.currentTimeMillis();
-            long timeSinceLastToken = currentTime - newestToken.getTimeMillis(); // Keep in milliseconds
+            long timeSinceLastToken = currentTime - newestToken.getTimeMillis();
             return timeSinceLastToken >= coolTimeToAddMillis;
         }
         return true;
     }
 
+    /**
+     * Evict expired tokens from the queue.
+     * Already synchronized, updated to use updateSnapshot().
+     */
     public synchronized List<TokenElement> evictExpiredTokens() {
         List<TokenElement> expiredTokens = new ArrayList<>();
 
@@ -152,14 +205,17 @@ public class TokenHa implements AutoCloseable {
         }
 
         filePersistence.save(toJson());
-        generateDescIterator(fifoQueue);
+        
+        // Update snapshot after modification
+        updateSnapshot();
+        
         return expiredTokens;
     }
     
     /**
      * Load tokens from file if it exists and deserialize using Gson.
      */
-    public void loadFromFile() throws IOException {
+    public synchronized void loadFromFile() throws IOException {
         String content = filePersistence.load();
         if (content != null) {
             logger.trace("Loaded content: {}", content);
@@ -181,6 +237,9 @@ public class TokenHa implements AutoCloseable {
                     for (TokenElement token : tokens) {
                         fifoQueue.add(token);
                     }
+                    
+                    // Update snapshot after loading
+                    updateSnapshot();
                     
                     logger.debug("Loaded {} tokens from file", fifoQueue.size());
                 }
@@ -230,7 +289,7 @@ public class TokenHa implements AutoCloseable {
      * Serialize TokenHa to JSON using Gson.
      * @return JSON string representation of tokens
      */
-    public String toJson() {
+    public synchronized String toJson() {
         List<TokenElement> tokenList = new ArrayList<>(fifoQueue);
         TokenData data = new TokenData(tokenList);
         return gson.toJson(data);
