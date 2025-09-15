@@ -4,7 +4,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.List;
 
 import com.github.tsutomunakamura.tokenha.config.TokenHaConfig;
@@ -100,11 +99,12 @@ public class TokenHa implements AutoCloseable {
      * The snapshot provides elements in descending order (newest to oldest).
      */
     private void updateSnapshot() {
-        // Create snapshot from the queue
-        snapshotList = new ArrayList<>(fifoQueue);
+        // Create and prepare the new snapshot in a local variable first
+        List<TokenElement> newSnapshot = new ArrayList<>(fifoQueue);
         // Reverse to get descending order (newest first)
-        Collections.reverse(snapshotList);
-        // No need to create iterator here
+        Collections.reverse(newSnapshot);
+        // Atomically replace the snapshot - this ensures getDescList() always gets a complete snapshot
+        snapshotList = newSnapshot;
     }
 
     /**
@@ -125,15 +125,6 @@ public class TokenHa implements AutoCloseable {
     public synchronized List<TokenElement> getDescList() {
         // Return a defensive copy of the snapshot list
         return new ArrayList<>(snapshotList);
-    }
-
-    /**
-     * @deprecated Use getDescList() instead. This method name is misleading as it now returns a List.
-     * @return List of tokens in descending order
-     */
-    @Deprecated
-    public synchronized Iterator<TokenElement> getDescIterator() {
-        return getDescList().iterator();
     }
 
     /**
