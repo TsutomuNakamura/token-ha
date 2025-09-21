@@ -30,8 +30,18 @@ TokenHaConfig config = new TokenHaConfig.Builder()
 TokenHa tokenHa = new TokenHa(config);
 
 // Add tokens (respects size limits and cooldown)
-tokenHa.addIfAvailable("user123");
-tokenHa.addIfAvailable("user456");
+boolean result1 = tokenHa.addIfAvailable("user123");
+System.out.println("First token added: " + result1); // true
+
+// Wait for cooldown period to pass
+try {
+    Thread.sleep(1100); // Wait longer than default cooldown (1000ms)
+} catch (InterruptedException e) {
+    Thread.currentThread().interrupt();
+}
+
+boolean result2 = tokenHa.addIfAvailable("user456");
+System.out.println("Second token added: " + result2); // true
 
 // Check queue status
 System.out.println("Queue size: " + tokenHa.getQueueSize());
