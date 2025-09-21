@@ -204,7 +204,7 @@ jobs:
         gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
         passphrase: ${{ secrets.GPG_PASSPHRASE }}
         
-    - name: Configure Maven for OSSRH
+    - name: Configure Maven for Central Publishing
       run: |
         mkdir -p ~/.m2
         cat > ~/.m2/settings.xml << EOF
@@ -214,14 +214,14 @@ jobs:
                                       http://maven.apache.org/xsd/settings-1.0.0.xsd">
           <servers>
             <server>
-              <id>ossrh</id>
-              <username>${{ secrets.OSSRH_USERNAME }}</username>
-              <password>${{ secrets.OSSRH_PASSWORD }}</password>
+              <id>central</id>
+              <username>${{ secrets.CENTRAL_TOKEN }}</username>
+              <password>${{ secrets.CENTRAL_TOKEN }}</password>
             </server>
           </servers>
           <profiles>
             <profile>
-              <id>ossrh</id>
+              <id>release</id>
               <activation>
                 <activeByDefault>true</activeByDefault>
               </activation>
