@@ -72,8 +72,11 @@ public class TokenHa implements AutoCloseable {
     }
 
     /**
-     * Add token if available according to cool time and max tokens constraints.
-     * This method is now synchronized to prevent race conditions.
+     * Add token if cooldown period has passed. Removes oldest token if queue is at max capacity.
+     * This method is synchronized to prevent race conditions.
+     * 
+     * @param token the token string to add
+     * @return true if token was added, false if cooldown period has not passed
      */
     public synchronized boolean addIfAvailable(String token) {
         if (!passedCoolTimeToAdd()) {
@@ -148,8 +151,11 @@ public class TokenHa implements AutoCloseable {
     }
 
     /**
-     * Check if available to add a new token.
+     * Check if available to add a new token without removing existing tokens.
+     * Returns true only when queue is not full AND cooldown period has passed.
      * Synchronized for consistent read of multiple conditions.
+     * 
+     * @return true if token can be added without removing existing tokens, false otherwise
      */
     public synchronized boolean availableToAdd() {
         return !isFilled() && passedCoolTimeToAdd();

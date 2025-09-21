@@ -29,7 +29,7 @@ TokenHaConfig config = new TokenHaConfig.Builder()
 
 TokenHa tokenHa = new TokenHa(config);
 
-// Add tokens (respects size limits and cooldown)
+// Add tokens (respects cooldown, removes oldest if queue full)
 boolean result1 = tokenHa.addIfAvailable("user123");
 System.out.println("First token added: " + result1); // true
 
@@ -202,11 +202,11 @@ TokenHaConfig config = TokenHaConfig.fromEnvironment();
 
 ```java
 // Token Management
-boolean addIfAvailable(String token)       // Add token if cooldown passed and not full
+boolean addIfAvailable(String token)       // Add token if cooldown passed (removes oldest if full)
 TokenElement newestToken()                  // Get the most recent token
 List<TokenElement> getDescList()           // Get unmodifiable list (newest to oldest)
 int getQueueSize()                         // Get current number of tokens
-boolean availableToAdd()                   // Check if can add new token
+boolean availableToAdd()                   // Check if can add new token (cooldown passed and not full)
 boolean isFilled()                         // Check if queue is at max capacity
 boolean passedCoolTimeToAdd()             // Check if cooldown period has passed
 
@@ -220,6 +220,42 @@ boolean deletePersistenceFile()          // Delete persistence file
 // Lifecycle
 void close()                              // Clean up resources and unregister from eviction
 ```
+
+### Understanding Token Addition Behavior
+
+**Key Difference Between Methods:**
+- **`addIfAvailable(token)`**: Always adds the token if cooldown has passed, even if queue is full (removes oldest token)
+- **`availableToAdd()`**: Returns true only if token can be added WITHOUT removing existing tokens (queue not full AND cooldown passed)
+
+### Handling Cooldown Period
+
+```java
+// Check if token can be added before attempting
+if (tokenHa.availableToAdd()) {
+    boolean added = tokenHa.addIfAvailable("user123");
+    System.out.println("Token added: " + added);
+} else {
+    System.out.println("Cannot add token: queue full or cooldown active");
+}
+
+// Alternative: Handle the boolean return value
+boolean success = tokenHa.addIfAvailable("user456");
+if (!success) {
+    System.out.println("Failed to add token (cooldown period not passed)");
+    
+    // Check specific reasons
+    if (tokenHa.isFilled()) {
+        System.out.println("Note: Queue is full, but token would still be added by removing oldest");
+    } else if (!tokenHa.passedCoolTimeToAdd()) {
+        System.out.println("Reason: Cooldown period not passed");
+    }
+}
+```
+
+**Important Queue Behavior:**
+- When queue reaches max capacity, adding new tokens automatically removes the oldest token (FIFO behavior)
+- The only reason `addIfAvailable()` returns false is if the cooldown period hasn't passed
+- Use `availableToAdd()` to check if you can add without displacing existing tokens
 
 ## Logging Configuration
 
