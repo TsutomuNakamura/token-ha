@@ -156,19 +156,8 @@ jobs:
         </settings>
         EOF
         
-    - name: Add GitHub Packages repository to pom.xml
-      run: |
-        # Create a temporary pom.xml with GitHub Packages repository
-        cp pom.xml pom.xml.backup
-        sed -i '/<\/distributionManagement>/i\
-        <repository>\
-          <id>github</id>\
-          <name>GitHub Packages</name>\
-          <url>https://maven.pkg.github.com/tsutomunakamura/token-ha</url>\
-        </repository>' pom.xml
-        
     - name: Build and deploy to GitHub Packages
-      run: ./mvnw clean deploy -DskipTests -Dmaven.deploy.skip=false
+      run: ./mvnw clean deploy -P github -DskipTests
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
