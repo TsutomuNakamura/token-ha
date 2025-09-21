@@ -131,3 +131,7 @@ jobs:
           echo "   git tag v$VERSION"
           echo "   git push origin v$VERSION"
         fi
+    - name: Build and deploy to GitHub Packages
+      run: ./mvnw clean deploy -P github -DskipTests
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
