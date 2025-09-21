@@ -161,7 +161,7 @@ Create a `tokenha.properties` file:
 ```properties
 tokenha.max.tokens=15
 tokenha.expiration.time.millis=45000
-tokenha.cool.time.to.add.millis=1500
+tokenha.cool.time.millis=1500
 tokenha.number.of.last.tokens=2
 tokenha.enable.auto.evict.if.queue.is.full=true
 tokenha.persistence.file.path=app-tokens.json
@@ -185,7 +185,7 @@ Set environment variables for configuration:
 ```bash
 export TOKENHA_MAX_TOKENS=15
 export TOKENHA_EXPIRATION_TIME_MILLIS=45000
-export TOKENHA_COOL_TIME_TO_ADD_MILLIS=1500
+export TOKENHA_COOL_TIME_MILLIS=1500
 export TOKENHA_NUMBER_OF_LAST_TOKENS=2
 export TOKENHA_ENABLE_AUTO_EVICT_IF_QUEUE_IS_FULL=true
 export TOKENHA_PERSISTENCE_FILE_PATH=app-tokens.json
@@ -204,13 +204,20 @@ TokenHa tokenHa = new TokenHa(config);
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `maxTokens` | int | **Required** | Maximum number of tokens in queue |
-| `expirationTimeMillis` | long | **Required** | Token lifetime in milliseconds |
-| `coolTimeToAddMillis` | long | **Required** | Minimum interval between additions |
-| `numberOfLastTokens` | int | `0` | Minimum tokens to retain during eviction |
+| `maxTokens` | int | `10` | Maximum number of tokens in queue |
+| `expirationTimeMillis` | long | `60000` | Token lifetime in milliseconds (60 seconds) |
+| `coolTimeToAddMillis` | long | `1000` | Minimum interval between additions (1 second) |
+| `numberOfLastTokens` | int | `1` | Minimum tokens to retain during eviction |
 | `enableAutoEvictIfQueueIsFull` | boolean | `true` | Auto-remove oldest when queue is full |
-| `persistenceFilePath` | String | `null` | File path for token persistence |
-| `evictionThreadConfig` | object | default | Background eviction thread settings |
+| `persistenceFilePath` | String | `"tokenha-data.json"` | File path for token persistence |
+| `evictionThreadConfig` | object | default config | Background eviction thread settings |
+
+#### Eviction Thread Configuration Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `evictionThreadConfig.initialDelayMillis` | long | `1000` | Initial delay before first eviction (1 second) |
+| `evictionThreadConfig.intervalMillis` | long | `10000` | Interval between eviction checks (10 seconds) |
 
 ### Queue Behavior Modes
 
@@ -240,7 +247,7 @@ Set environment variables with `TOKENHA_` prefix:
 ```bash
 export TOKENHA_MAX_TOKENS=25
 export TOKENHA_EXPIRATION_TIME_MILLIS=60000
-export TOKENHA_COOL_TIME_TO_ADD_MILLIS=1500
+export TOKENHA_COOL_TIME_MILLIS=1500
 export TOKENHA_ENABLE_AUTO_EVICT_IF_QUEUE_IS_FULL=true
 export TOKENHA_EVICTION_INITIAL_DELAY_MILLIS=2000
 export TOKENHA_EVICTION_INTERVAL_MILLIS=15000
@@ -252,10 +259,13 @@ TokenHaConfig config = TokenHaConfig.fromEnvironment();
 ```
 
 ### Default Settings
+
+When using the default constructor `new TokenHa()` or `TokenHaConfig.defaultConfig()`, these values are used:
+
 - **Max Tokens**: 10
 - **Expiration Time**: 60000ms (60 seconds)
 - **Cool Time to Add**: 1000ms (1 second)
-- **Number of Last Tokens**: 1 (minimum to keep)
+- **Number of Last Tokens**: 1 (minimum to keep during eviction)
 - **Enable Auto Evict If Queue Is Full**: true
 - **Persistence File Path**: "tokenha-data.json"
 - **Eviction Initial Delay**: 1000ms (1 second)
