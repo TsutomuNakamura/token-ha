@@ -1,0 +1,133 @@
+name: Update Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'New version (e.g., 1.0.0)'
+        required: true
+        type: string
+      create_pr:
+        description: 'Create pull request for version update'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  update-version:
+    name: Update Version
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Validate version format
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Error: Version must be in format X.Y.Z (e.g., 1.0.0)"
+          exit 1
+        fi
+        echo "Updating to version: $VERSION"
+        
+    - name: Update version in pom.xml
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        ./mvnw versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
+        
+    - name: Update README.md version references
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        # Update Maven dependency examples
+        sed -i "s/<version>[0-9]\+\.[0-9]\+\.[0-9]\+<\/version>/<version>$VERSION<\/version>/g" README.md
+        # Update Gradle dependency examples  
+        sed -i "s/token-ha:[0-9]\+\.[0-9]\+\.[0-9]\+/token-ha:$VERSION/g" README.md
+        
+    - name: Verify changes
+      run: |
+        echo "=== Updated pom.xml version ==="
+        grep -A 1 -B 1 "<version>" pom.xml | head -5
+        echo ""
+        echo "=== Updated README.md references ==="
+        grep -n "version>" README.md || echo "No version tags found in README.md"
+        grep -n "token-ha:" README.md || echo "No Gradle references found in README.md"
+        
+    - name: Commit changes
+      if: github.event.inputs.create_pr == 'true'
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add pom.xml README.md
+        git commit -m "Prepare release $VERSION
+
+        - Update version in pom.xml to $VERSION
+        - Update version references in README.md
+        
+        [skip ci]"
+        
+    - name: Create Pull Request
+      if: github.event.inputs.create_pr == 'true'
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "Prepare release ${{ github.event.inputs.version }}"
+        title: "Prepare release ${{ github.event.inputs.version }}"
+        body: |
+          ## Prepare Release ${{ github.event.inputs.version }}
+          
+          This PR updates the version number in preparation for release ${{ github.event.inputs.version }}.
+          
+          ### Changes:
+          - ✅ Updated `pom.xml` version to ${{ github.event.inputs.version }}
+          - ✅ Updated version references in `README.md`
+          
+          ### Next Steps:
+          1. Review and merge this PR
+          2. Create and push a git tag: `git tag v${{ github.event.inputs.version }}`
+          3. The release workflow will automatically deploy to GitHub Packages and Maven Central
+          
+          ### Deployment Commands:
+          ```bash
+          # After merging this PR:
+          git checkout main
+          git pull origin main
+          git tag v${{ github.event.inputs.version }}
+          git push origin v${{ github.event.inputs.version }}
+          ```
+        branch: prepare-release-${{ github.event.inputs.version }}
+        delete-branch: true
+        
+    - name: Direct commit to current branch
+      if: github.event.inputs.create_pr == 'false'
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add pom.xml README.md
+        git commit -m "Update version to $VERSION [skip ci]"
+        git push
+        
+    - name: Summary
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        echo "🎉 Version updated to $VERSION"
+        echo ""
+        if [[ "${{ github.event.inputs.create_pr }}" == "true" ]]; then
+          echo "📋 A pull request has been created for review"
+          echo "👀 Please review and merge the PR, then create a release tag"
+        else
+          echo "✅ Changes have been committed directly to the current branch"
+          echo "🏷️ Create a release tag to trigger deployment:"
+          echo "   git tag v$VERSION"
+          echo "   git push origin v$VERSION"
+        fi

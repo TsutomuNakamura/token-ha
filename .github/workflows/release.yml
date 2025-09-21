@@ -1,0 +1,348 @@
+name: Release to GitHub Packages and Maven Central
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v2.1.3, etc.
+  workflow_dispatch:  # Allows manual triggering
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      is-valid-branch: ${{ steps.check-branch.outputs.is-valid }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history to check which branch contains the tag
+      
+    - name: Check if tag is on main or develop branch
+      id: check-branch
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          echo "is-valid=true" >> $GITHUB_OUTPUT
+          echo "Manual workflow dispatch - proceeding"
+        else
+          # Check if the tag is reachable from main or develop
+          TAG_COMMIT=$(git rev-list -n 1 ${{ github.ref }})
+          
+          # Check if commit is on main branch
+          if git merge-base --is-ancestor $TAG_COMMIT origin/main 2>/dev/null; then
+            echo "is-valid=true" >> $GITHUB_OUTPUT
+            echo "✅ Tag is on main branch - proceeding with release"
+          # Check if commit is on develop branch  
+          elif git merge-base --is-ancestor $TAG_COMMIT origin/develop 2>/dev/null; then
+            echo "is-valid=true" >> $GITHUB_OUTPUT
+            echo "✅ Tag is on develop branch - proceeding with release"
+          else
+            echo "is-valid=false" >> $GITHUB_OUTPUT
+            echo "❌ Tag is not on main or develop branch - skipping release"
+            echo "Please create tags only from main or develop branches"
+          fi
+        fi
+        
+    - name: Get version from tag or input
+      id: get-version
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION=${GITHUB_REF#refs/tags/v}
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Release version: $VERSION"
+        
+    - name: Validate version format
+      if: steps.check-branch.outputs.is-valid == 'true'
+      run: |
+        VERSION="${{ steps.get-version.outputs.version }}"
+        if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Error: Version must be in format X.Y.Z (e.g., 1.0.0)"
+          exit 1
+        fi
+        
+    - name: Stop workflow if branch validation failed
+      if: steps.check-branch.outputs.is-valid == 'false'
+      run: |
+        echo "🛑 Workflow stopped: Tag not created from main or develop branch"
+        echo "Valid branches for releases: main, develop"
+        echo "Current tag: ${{ github.ref }}"
+        exit 1
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.is-valid-branch == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Run full test suite
+      run: ./mvnw clean test
+      
+    - name: Verify build
+      run: ./mvnw clean compile package -DskipTests
+
+  release-github-packages:
+    name: Release to GitHub Packages
+    runs-on: ubuntu-latest
+    needs: [validate, test]
+    if: needs.validate.outputs.is-valid-branch == 'true'
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Update version in pom.xml
+      run: |
+        VERSION="${{ needs.validate.outputs.version }}"
+        ./mvnw versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
+        
+    - name: Configure Maven for GitHub Packages
+      run: |
+        mkdir -p ~/.m2
+        cat > ~/.m2/settings.xml << EOF
+        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                      http://maven.apache.org/xsd/settings-1.0.0.xsd">
+          <servers>
+            <server>
+              <id>github</id>
+              <username>${{ github.actor }}</username>
+              <password>${{ secrets.GITHUB_TOKEN }}</password>
+            </server>
+          </servers>
+        </settings>
+        EOF
+        
+    - name: Add GitHub Packages repository to pom.xml
+      run: |
+        # Create a temporary pom.xml with GitHub Packages repository
+        cp pom.xml pom.xml.backup
+        sed -i '/<\/distributionManagement>/i\
+        <repository>\
+          <id>github</id>\
+          <name>GitHub Packages</name>\
+          <url>https://maven.pkg.github.com/tsutomunakamura/token-ha</url>\
+        </repository>' pom.xml
+        
+    - name: Build and deploy to GitHub Packages
+      run: ./mvnw clean deploy -DskipTests -Dmaven.deploy.skip=false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload GitHub Packages artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: github-packages-artifacts
+        path: |
+          target/*.jar
+          target/*.pom
+        retention-days: 30
+
+  release-maven-central:
+    name: Release to Maven Central
+    runs-on: ubuntu-latest
+    needs: [validate, test, release-github-packages]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.validate.outputs.is-valid-branch == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Update version in pom.xml
+      run: |
+        VERSION="${{ needs.validate.outputs.version }}"
+        ./mvnw versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
+        
+    - name: Import GPG signing key
+      uses: crazy-max/ghaction-import-gpg@v6
+      with:
+        gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+        passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        
+    - name: Configure Maven for OSSRH
+      run: |
+        mkdir -p ~/.m2
+        cat > ~/.m2/settings.xml << EOF
+        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                      http://maven.apache.org/xsd/settings-1.0.0.xsd">
+          <servers>
+            <server>
+              <id>ossrh</id>
+              <username>${{ secrets.OSSRH_USERNAME }}</username>
+              <password>${{ secrets.OSSRH_PASSWORD }}</password>
+            </server>
+          </servers>
+          <profiles>
+            <profile>
+              <id>ossrh</id>
+              <activation>
+                <activeByDefault>true</activeByDefault>
+              </activation>
+              <properties>
+                <gpg.executable>gpg</gpg.executable>
+                <gpg.passphrase>${{ secrets.GPG_PASSPHRASE }}</gpg.passphrase>
+              </properties>
+            </profile>
+          </profiles>
+        </settings>
+        EOF
+        
+    - name: Deploy to Maven Central
+      run: ./mvnw clean deploy -P release -DskipTests
+      env:
+        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        
+    - name: Upload Maven Central artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: maven-central-artifacts
+        path: |
+          target/*.jar
+          target/*.pom
+          target/*.asc
+        retention-days: 30
+
+  create-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate, release-github-packages]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.validate.outputs.is-valid-branch == 'true'
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: github-packages-artifacts
+        path: artifacts/
+        
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ needs.validate.outputs.version }}
+        body: |
+          ## TokenHa v${{ needs.validate.outputs.version }}
+          
+          ### 📦 Artifacts
+          - **JAR File**: Available in this release and on Maven Central
+          - **Source Code**: Available as source code archives below
+          - **Documentation**: See README.md for usage instructions
+          
+          ### 🚀 Installation
+          
+          #### Maven
+          ```xml
+          <dependency>
+              <groupId>com.github.tsutomunakamura</groupId>
+              <artifactId>token-ha</artifactId>
+              <version>${{ needs.validate.outputs.version }}</version>
+          </dependency>
+          ```
+          
+          #### Gradle
+          ```gradle
+          implementation 'com.github.tsutomunakamura:token-ha:${{ needs.validate.outputs.version }}'
+          ```
+          
+          ### 📚 Resources
+          - [Documentation](https://github.com/tsutomunakamura/token-ha#readme)
+          - [API Javadoc](https://javadoc.io/doc/com.github.tsutomunakamura/token-ha)
+          - [Maven Central](https://central.sonatype.com/artifact/com.github.tsutomunakamura/token-ha)
+        draft: false
+        prerelease: false
+        
+    - name: Upload Release Assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: artifacts/token-ha-${{ needs.validate.outputs.version }}.jar
+        asset_name: token-ha-${{ needs.validate.outputs.version }}.jar
+        asset_content_type: application/java-archive
+
+  notify:
+    name: Notify Release Status
+    runs-on: ubuntu-latest
+    needs: [validate, release-github-packages, release-maven-central, create-github-release]
+    if: always()
+    
+    steps:
+    - name: Notify Success
+      if: needs.release-github-packages.result == 'success' && (needs.release-maven-central.result == 'success' || needs.release-maven-central.result == 'skipped')
+      run: |
+        echo "🎉 Release v${{ needs.validate.outputs.version }} completed successfully!"
+        echo "✅ GitHub Packages: Published"
+        echo "✅ Maven Central: ${{ needs.release-maven-central.result == 'success' && 'Published' || 'Skipped (manual trigger)' }}"
+        echo "✅ GitHub Release: Created"
+        
+    - name: Notify Failure
+      if: failure()
+      run: |
+        echo "❌ Release v${{ needs.validate.outputs.version }} failed!"
+        echo "Please check the workflow logs for details."
