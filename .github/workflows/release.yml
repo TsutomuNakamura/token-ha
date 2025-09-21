@@ -267,13 +267,13 @@ jobs:
         name: github-packages-artifacts
         path: artifacts/
         
-    - name: Create Release
-      uses: actions/create-release@v1
+    - name: Create Release and Upload Assets
+      uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
-        release_name: Release ${{ needs.validate.outputs.version }}
+        name: Release ${{ needs.validate.outputs.version }}
         body: |
           ## TokenHa v${{ needs.validate.outputs.version }}
           
@@ -304,16 +304,10 @@ jobs:
           - [Maven Central](https://central.sonatype.com/artifact/com.github.tsutomunakamura/token-ha)
         draft: false
         prerelease: false
-        
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/token-ha-${{ needs.validate.outputs.version }}.jar
-        asset_name: token-ha-${{ needs.validate.outputs.version }}.jar
-        asset_content_type: application/java-archive
+        files: |
+          artifacts/token-ha-${{ needs.validate.outputs.version }}.jar
+          artifacts/token-ha-${{ needs.validate.outputs.version }}-sources.jar
+          artifacts/token-ha-${{ needs.validate.outputs.version }}-javadoc.jar
 
   notify:
     name: Notify Release Status
