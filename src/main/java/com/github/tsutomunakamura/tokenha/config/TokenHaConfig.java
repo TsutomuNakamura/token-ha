@@ -18,6 +18,7 @@ public class TokenHaConfig {
     private static final int DEFAULT_MAX_TOKENS = 10;
     private static final long DEFAULT_COOL_TIME_MILLIS = 1000L;
     private static final String DEFAULT_PERSISTENCE_FILE_PATH = "tokenha-data.json";
+    private static final boolean DEFAULT_ENABLE_AUTO_EVICT_IF_QUEUE_IS_FULL = true;
     
     private final long expirationTimeMillis;
     private final int numberOfLastTokens;
@@ -25,6 +26,7 @@ public class TokenHaConfig {
     private final long coolTimeToAddMillis;
     private final String persistenceFilePath;
     private final EvictionThreadConfig evictionThreadConfig;
+    private final boolean enableAutoEvictIfQueueIsFull;
     
     private TokenHaConfig(Builder builder) {
         this.expirationTimeMillis = builder.expirationTimeMillis;
@@ -33,6 +35,7 @@ public class TokenHaConfig {
         this.coolTimeToAddMillis = builder.coolTimeToAddMillis;
         this.persistenceFilePath = builder.persistenceFilePath;
         this.evictionThreadConfig = builder.evictionThreadConfig;
+        this.enableAutoEvictIfQueueIsFull = builder.enableAutoEvictIfQueueIsFull;
     }
     
     // Getters
@@ -42,6 +45,7 @@ public class TokenHaConfig {
     public long getCoolTimeToAddMillis() { return coolTimeToAddMillis; }
     public String getPersistenceFilePath() { return persistenceFilePath; }
     public EvictionThreadConfig getEvictionThreadConfig() { return evictionThreadConfig; }
+    public boolean isEnableAutoEvictIfQueueIsFull() { return enableAutoEvictIfQueueIsFull; }
     
     /**
      * Create a default configuration.
@@ -75,6 +79,7 @@ public class TokenHaConfig {
         int maxTokens = getIntProperty(properties, "tokenha.max.tokens", DEFAULT_MAX_TOKENS);
         long coolTime = getLongProperty(properties, "tokenha.cool.time.millis", DEFAULT_COOL_TIME_MILLIS);
         String filePath = properties.getProperty("tokenha.persistence.file.path", DEFAULT_PERSISTENCE_FILE_PATH);
+        boolean enableAutoEvict = getBooleanProperty(properties, "tokenha.enable.auto.evict.if.queue.is.full", DEFAULT_ENABLE_AUTO_EVICT_IF_QUEUE_IS_FULL);
         
         // Load eviction thread configuration from properties
         EvictionThreadConfig evictionConfig = EvictionThreadConfig.fromProperties(properties);
@@ -85,7 +90,8 @@ public class TokenHaConfig {
             .maxTokens(maxTokens)
             .coolTimeToAddMillis(coolTime)
             .persistenceFilePath(filePath)
-            .evictionThreadConfig(evictionConfig);
+            .evictionThreadConfig(evictionConfig)
+            .enableAutoEvictIfQueueIsFull(enableAutoEvict);
                                 
         return builder.build();
     }
@@ -101,8 +107,8 @@ public class TokenHaConfig {
         int numberOfLastTokens = getIntEnv("TOKENHA_NUMBER_OF_LAST_TOKENS", DEFAULT_NUMBER_OF_LAST_TOKENS);
         int maxTokens = getIntEnv("TOKENHA_MAX_TOKENS", DEFAULT_MAX_TOKENS);
         long coolTime = getLongEnv("TOKENHA_COOL_TIME_MILLIS", DEFAULT_COOL_TIME_MILLIS);
-        //String filePath = System.getenv().getOrDefault("TOKENHA_PERSISTENCE_FILE_PATH", DEFAULT_PERSISTENCE_FILE_PATH);
         String filePath = getEnv("TOKENHA_PERSISTENCE_FILE_PATH", DEFAULT_PERSISTENCE_FILE_PATH);
+        boolean enableAutoEvict = getBooleanEnv("TOKENHA_ENABLE_AUTO_EVICT_IF_QUEUE_IS_FULL", DEFAULT_ENABLE_AUTO_EVICT_IF_QUEUE_IS_FULL);
         
         // Load eviction thread configuration from environment
         EvictionThreadConfig evictionConfig = EvictionThreadConfig.fromEnvironment();
@@ -113,7 +119,8 @@ public class TokenHaConfig {
             .maxTokens(maxTokens)
             .coolTimeToAddMillis(coolTime)
             .persistenceFilePath(filePath)
-            .evictionThreadConfig(evictionConfig);
+            .evictionThreadConfig(evictionConfig)
+            .enableAutoEvictIfQueueIsFull(enableAutoEvict);
         
         return builder.build();
     }
@@ -128,6 +135,7 @@ public class TokenHaConfig {
         private long coolTimeToAddMillis = DEFAULT_COOL_TIME_MILLIS;
         private String persistenceFilePath = DEFAULT_PERSISTENCE_FILE_PATH;
         private EvictionThreadConfig evictionThreadConfig = EvictionThreadConfig.defaultConfig();
+        private boolean enableAutoEvictIfQueueIsFull = DEFAULT_ENABLE_AUTO_EVICT_IF_QUEUE_IS_FULL;
         
         public Builder expirationTimeMillis(long expirationTimeMillis) {
             if (expirationTimeMillis <= 0) {
@@ -177,6 +185,11 @@ public class TokenHaConfig {
             return this;
         }
         
+        public Builder enableAutoEvictIfQueueIsFull(boolean enableAutoEvictIfQueueIsFull) {
+            this.enableAutoEvictIfQueueIsFull = enableAutoEvictIfQueueIsFull;
+            return this;
+        }
+        
         public TokenHaConfig build() {
             // Validation
             if (numberOfLastTokens >= maxTokens) {
@@ -203,6 +216,14 @@ public class TokenHaConfig {
         return defaultValue;
     }
     
+    private static boolean getBooleanProperty(Properties props, String key, boolean defaultValue) {
+        String value = props.getProperty(key);
+        if (value != null) {
+            return Boolean.parseBoolean(value.trim());
+        }
+        return defaultValue;
+    }
+    
     public static int getIntEnv(String key, int defaultValue) {
         String value = System.getenv(key);
         if (value != null) {
@@ -221,6 +242,14 @@ public class TokenHaConfig {
 
     public static String getEnv(String key, String defaultValue) {
         return System.getenv().getOrDefault(key, defaultValue);
+    }
+    
+    public static boolean getBooleanEnv(String key, boolean defaultValue) {
+        String value = System.getenv(key);
+        if (value != null) {
+            return Boolean.parseBoolean(value.trim());
+        }
+        return defaultValue;
     }
     
     @Override

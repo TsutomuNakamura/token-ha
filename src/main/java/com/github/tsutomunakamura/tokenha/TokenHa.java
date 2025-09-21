@@ -32,6 +32,7 @@ public class TokenHa implements AutoCloseable {
     private final int maxTokens;
     private final long coolTimeToAddMillis;
     private final String persistenceFilePath;
+    private final boolean enableAutoEvictIfQueueIsFull;
 
     private Deque<TokenElement> fifoQueue = new ArrayDeque<>();
     private FilePersistence filePersistence; // File persistence handler
@@ -63,6 +64,7 @@ public class TokenHa implements AutoCloseable {
         this.maxTokens = config.getMaxTokens();
         this.coolTimeToAddMillis = config.getCoolTimeToAddMillis();
         this.persistenceFilePath = config.getPersistenceFilePath();
+        this.enableAutoEvictIfQueueIsFull = config.isEnableAutoEvictIfQueueIsFull();
         
         EvictionThread.getInstance(config.getEvictionThreadConfig()).register(this);
         filePersistence = new FilePersistence(persistenceFilePath);
@@ -72,18 +74,24 @@ public class TokenHa implements AutoCloseable {
     }
 
     /**
-     * Add token if cooldown period has passed. Removes oldest token if queue is at max capacity.
+     * Add token if cooldown period has passed. Conditionally removes oldest token if queue is at max capacity.
      * This method is synchronized to prevent race conditions.
      * 
      * @param token the token string to add
-     * @return true if token was added, false if cooldown period has not passed
+     * @return true if token was added, false if cooldown period has not passed or queue is full and auto-eviction is disabled
      */
     public synchronized boolean addIfAvailable(String token) {
         if (!passedCoolTimeToAdd()) {
             return false;
         }
 
-        if (isFilled()) {
+        // Check if queue is full and auto-eviction is disabled
+        if (isFilled() && !enableAutoEvictIfQueueIsFull) {
+            return false;
+        }
+
+        // Remove oldest token if queue is full and auto-eviction is enabled
+        if (isFilled() && enableAutoEvictIfQueueIsFull) {
             fifoQueue.poll();
         }
         
@@ -151,14 +159,22 @@ public class TokenHa implements AutoCloseable {
     }
 
     /**
-     * Check if available to add a new token without removing existing tokens.
-     * Returns true only when queue is not full AND cooldown period has passed.
+     * Check if available to add a new token.
+     * Behavior depends on enableAutoEvictIfQueueIsFull configuration:
+     * - If true: returns true when cooldown period has passed (regardless of queue fullness)
+     * - If false: returns true when queue is not full AND cooldown period has passed
      * Synchronized for consistent read of multiple conditions.
      * 
-     * @return true if token can be added without removing existing tokens, false otherwise
+     * @return true if token can be added, false otherwise
      */
     public synchronized boolean availableToAdd() {
-        return !isFilled() && passedCoolTimeToAdd();
+        if (enableAutoEvictIfQueueIsFull) {
+            // When auto-eviction is enabled, only cooldown matters
+            return passedCoolTimeToAdd();
+        } else {
+            // When auto-eviction is disabled, both cooldown and queue fullness matter
+            return !isFilled() && passedCoolTimeToAdd();
+        }
     }
 
     /**

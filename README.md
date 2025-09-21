@@ -7,6 +7,7 @@ A lightweight Java library for managing tokens with automatic eviction, cooldown
 - **Token Queue Management**: FIFO queue with configurable size limits
 - **Automatic Eviction**: Background thread automatically removes expired tokens
 - **Cooldown Protection**: Configurable cooldown period between token additions
+- **Configurable Queue Behavior**: Choose whether to auto-evict oldest tokens when queue is full
 - **File Persistence**: Automatic saving/loading with exclusive file locking
 - **Thread-Safe**: All operations are synchronized for concurrent access
 - **Memory Efficient**: Uses WeakReference for automatic cleanup
@@ -24,12 +25,13 @@ TokenHaConfig config = new TokenHaConfig.Builder()
     .maxTokens(20)
     .expirationTimeMillis(30000)
     .coolTimeToAddMillis(2000)
+    .enableAutoEvictIfQueueIsFull(true)    // Allow auto-eviction when full
     .persistenceFilePath("my-tokens.json")
     .build();
 
 TokenHa tokenHa = new TokenHa(config);
 
-// Add tokens (respects cooldown, removes oldest if queue full)
+// Add tokens (respects cooldown, behavior depends on enableAutoEvictIfQueueIsFull setting)
 boolean result1 = tokenHa.addIfAvailable("user123");
 System.out.println("First token added: " + result1); // true
 
@@ -130,6 +132,7 @@ TokenHaConfig config = new TokenHaConfig.Builder()
     .expirationTimeMillis(30000)        // 30 seconds
     .coolTimeToAddMillis(2000)          // 2 seconds cooldown
     .numberOfLastTokens(2)               // Keep at least 2 tokens
+    .enableAutoEvictIfQueueIsFull(true)  // Auto-evict oldest when full (default: true)
     .persistenceFilePath("custom-tokens.json")
     .build();
 
@@ -160,10 +163,70 @@ tokenha.max.tokens=15
 tokenha.expiration.time.millis=45000
 tokenha.cool.time.to.add.millis=1500
 tokenha.number.of.last.tokens=2
+tokenha.enable.auto.evict.if.queue.is.full=true
 tokenha.persistence.file.path=app-tokens.json
 tokenha.eviction.initial.delay.millis=1000
 tokenha.eviction.interval.millis=8000
 ```
+
+Load from properties:
+
+```java
+Properties props = new Properties();
+props.load(new FileInputStream("tokenha.properties"));
+TokenHaConfig config = TokenHaConfig.fromProperties(props);
+TokenHa tokenHa = new TokenHa(config);
+```
+
+### Environment Variable Configuration
+
+Set environment variables for configuration:
+
+```bash
+export TOKENHA_MAX_TOKENS=15
+export TOKENHA_EXPIRATION_TIME_MILLIS=45000
+export TOKENHA_COOL_TIME_TO_ADD_MILLIS=1500
+export TOKENHA_NUMBER_OF_LAST_TOKENS=2
+export TOKENHA_ENABLE_AUTO_EVICT_IF_QUEUE_IS_FULL=true
+export TOKENHA_PERSISTENCE_FILE_PATH=app-tokens.json
+export TOKENHA_EVICTION_INITIAL_DELAY_MILLIS=1000
+export TOKENHA_EVICTION_INTERVAL_MILLIS=8000
+```
+
+Load from environment:
+
+```java
+TokenHaConfig config = TokenHaConfig.fromEnvironment();
+TokenHa tokenHa = new TokenHa(config);
+```
+
+### Configuration Properties Reference
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `maxTokens` | int | **Required** | Maximum number of tokens in queue |
+| `expirationTimeMillis` | long | **Required** | Token lifetime in milliseconds |
+| `coolTimeToAddMillis` | long | **Required** | Minimum interval between additions |
+| `numberOfLastTokens` | int | `0` | Minimum tokens to retain during eviction |
+| `enableAutoEvictIfQueueIsFull` | boolean | `true` | Auto-remove oldest when queue is full |
+| `persistenceFilePath` | String | `null` | File path for token persistence |
+| `evictionThreadConfig` | object | default | Background eviction thread settings |
+
+### Queue Behavior Modes
+
+**Auto-Eviction Enabled (Default)**
+- `enableAutoEvictIfQueueIsFull = true`
+- New tokens always added if cooldown period has passed
+- Oldest tokens automatically removed when queue reaches max capacity
+- `availableToAdd()` returns `true` when cooldown passed, regardless of queue fullness
+- Best for rate limiting where recent activity is most important
+
+**Auto-Eviction Disabled**
+- `enableAutoEvictIfQueueIsFull = false`
+- New tokens rejected when queue is at max capacity
+- Strict enforcement of queue size limits
+- `availableToAdd()` returns `false` when queue is full OR cooldown hasn't passed
+- Best for scenarios requiring precise token count control
 
 Load configuration from properties:
 ```java
@@ -178,6 +241,7 @@ Set environment variables with `TOKENHA_` prefix:
 export TOKENHA_MAX_TOKENS=25
 export TOKENHA_EXPIRATION_TIME_MILLIS=60000
 export TOKENHA_COOL_TIME_TO_ADD_MILLIS=1500
+export TOKENHA_ENABLE_AUTO_EVICT_IF_QUEUE_IS_FULL=true
 export TOKENHA_EVICTION_INITIAL_DELAY_MILLIS=2000
 export TOKENHA_EVICTION_INTERVAL_MILLIS=15000
 ```
@@ -192,6 +256,7 @@ TokenHaConfig config = TokenHaConfig.fromEnvironment();
 - **Expiration Time**: 60000ms (60 seconds)
 - **Cool Time to Add**: 1000ms (1 second)
 - **Number of Last Tokens**: 1 (minimum to keep)
+- **Enable Auto Evict If Queue Is Full**: true
 - **Persistence File Path**: "tokenha-data.json"
 - **Eviction Initial Delay**: 1000ms (1 second)
 - **Eviction Interval**: 10000ms (10 seconds)
@@ -202,13 +267,70 @@ TokenHaConfig config = TokenHaConfig.fromEnvironment();
 
 ```java
 // Token Management
-boolean addIfAvailable(String token)       // Add token if cooldown passed (removes oldest if full)
-TokenElement newestToken()                  // Get the most recent token
-List<TokenElement> getDescList()           // Get unmodifiable list (newest to oldest)
-int getQueueSize()                         // Get current number of tokens
-boolean availableToAdd()                   // Check if can add new token (cooldown passed and not full)
-boolean isFilled()                         // Check if queue is at max capacity
-boolean passedCoolTimeToAdd()             // Check if cooldown period has passed
+boolean addIfAvailable(String token)       // Add token if cooldown passed
+                                          // Behavior depends on enableAutoEvictIfQueueIsFull:
+                                          // - true: always adds (evicts oldest if needed)
+                                          // - false: fails if queue is full
+
+boolean deleteById(String id)             // Remove specific token by ID
+void deleteOldest()                       // Remove oldest token manually
+void deleteAll()                          // Clear all tokens
+
+// Queue Status
+boolean availableToAdd()                  // Check if token can be added
+                                         // Returns true if:
+                                         // - cooldown passed AND (queue not full OR auto-evict enabled)
+boolean isFilled()                       // Check if queue is at max capacity
+boolean passedCoolTimeToAdd()           // Check if cooldown period has passed
+int size()                              // Current number of tokens
+boolean isEmpty()                       // Check if queue is empty
+
+// Token Access (Zero-allocation cached snapshots)
+List<String> getDescList()              // Get all tokens (newest first) as unmodifiable list
+List<String> getAscList()               // Get all tokens (oldest first) as unmodifiable list  
+List<String> getValidList()             // Get non-expired tokens as unmodifiable list
+Optional<String> getLatestAdded()       // Get most recently added token
+Optional<String> getOldest()            // Get oldest token
+```
+
+### Configuration API
+
+```java
+// TokenHaConfig Builder
+TokenHaConfig.Builder builder = new TokenHaConfig.Builder()
+    .maxTokens(int)                              // Required: maximum queue size
+    .expirationTimeMillis(long)                  // Required: token lifetime
+    .coolTimeToAddMillis(long)                   // Required: minimum add interval
+    .numberOfLastTokens(int)                     // Optional: minimum tokens to retain
+    .enableAutoEvictIfQueueIsFull(boolean)       // Optional: auto-eviction behavior (default: true)
+    .persistenceFilePath(String)                 // Optional: persistence file path
+    .evictionThreadConfig(EvictionThreadConfig); // Optional: background cleanup config
+
+// Configuration loading
+TokenHaConfig config = TokenHaConfig.fromProperties(Properties props);
+TokenHaConfig config = TokenHaConfig.fromProperties(String filePath);
+TokenHaConfig config = TokenHaConfig.fromEnvironment();
+```
+
+### Behavior Summary by Configuration
+
+| Scenario | `enableAutoEvictIfQueueIsFull` | Queue State | Cooldown | `addIfAvailable()` | `availableToAdd()` |
+|----------|------------------------------|-------------|----------|-------------------|-------------------|
+| Normal operation | `true`/`false` | Not full | Passed | ✅ `true` | ✅ `true` |
+| Normal operation | `true`/`false` | Not full | Not passed | ❌ `false` | ❌ `false` |
+| Auto-evict enabled | `true` | Full | Passed | ✅ `true` (evicts oldest) | ✅ `true` |
+| Auto-evict enabled | `true` | Full | Not passed | ❌ `false` | ❌ `false` |
+| Auto-evict disabled | `false` | Full | Passed | ❌ `false` | ❌ `false` |
+| Auto-evict disabled | `false` | Full | Not passed | ❌ `false` | ❌ `false` |
+
+### Legacy API (Deprecated)
+
+```java
+TokenElement newestToken()                  // Get the most recent token (use getLatestAdded())
+int getQueueSize()                         // Get current number of tokens (use size())
+```
+
+**Note**: Some legacy methods are deprecated. Use the new API methods for better performance and consistency.
 
 // Persistence
 String toJson()                           // Export tokens as JSON
@@ -223,11 +345,74 @@ void close()                              // Clean up resources and unregister f
 
 ### Understanding Token Addition Behavior
 
-**Key Difference Between Methods:**
-- **`addIfAvailable(token)`**: Always adds the token if cooldown has passed, even if queue is full (removes oldest token)
-- **`availableToAdd()`**: Returns true only if token can be added WITHOUT removing existing tokens (queue not full AND cooldown passed)
+**Key Configuration: `enableAutoEvictIfQueueIsFull`**
 
-### Handling Cooldown Period
+The behavior of `addIfAvailable()` and `availableToAdd()` depends on this configuration:
+
+#### When `enableAutoEvictIfQueueIsFull = true` (default):
+- **`addIfAvailable(token)`**: Always adds the token if cooldown has passed, automatically removes oldest token if queue is full
+- **`availableToAdd()`**: Returns true if cooldown has passed (regardless of queue fullness)
+
+#### When `enableAutoEvictIfQueueIsFull = false`:
+- **`addIfAvailable(token)`**: Adds token only if cooldown has passed AND queue is not full
+- **`availableToAdd()`**: Returns true only if cooldown has passed AND queue is not full
+
+### Configuration Examples
+
+```java
+// Allow auto-eviction (default behavior)
+TokenHaConfig config = new TokenHaConfig.Builder()
+    .enableAutoEvictIfQueueIsFull(true)
+    .build();
+
+// Disable auto-eviction (strict capacity limits)
+TokenHaConfig configStrict = new TokenHaConfig.Builder()
+    .enableAutoEvictIfQueueIsFull(false)
+    .build();
+```
+
+### Handling Different Behaviors
+
+```java
+// Example with auto-eviction enabled (default)
+TokenHaConfig autoEvictConfig = new TokenHaConfig.Builder()
+    .maxTokens(3)
+    .enableAutoEvictIfQueueIsFull(true)
+    .build();
+
+TokenHa autoEvictTokenHa = new TokenHa(autoEvictConfig);
+
+// These will all succeed (oldest tokens auto-evicted when needed)
+autoEvictTokenHa.addIfAvailable("token1");
+Thread.sleep(1100); // Wait for cooldown
+autoEvictTokenHa.addIfAvailable("token2");
+Thread.sleep(1100);
+autoEvictTokenHa.addIfAvailable("token3");
+Thread.sleep(1100);
+autoEvictTokenHa.addIfAvailable("token4"); // token1 is auto-evicted
+
+// Example with auto-eviction disabled
+TokenHaConfig strictConfig = new TokenHaConfig.Builder()
+    .maxTokens(3)
+    .enableAutoEvictIfQueueIsFull(false)
+    .build();
+
+TokenHa strictTokenHa = new TokenHa(strictConfig);
+
+strictTokenHa.addIfAvailable("token1");
+Thread.sleep(1100);
+strictTokenHa.addIfAvailable("token2");  
+Thread.sleep(1100);
+strictTokenHa.addIfAvailable("token3");
+Thread.sleep(1100);
+boolean success = strictTokenHa.addIfAvailable("token4"); // Returns false - queue full
+
+if (!success) {
+    System.out.println("Cannot add token: queue is full and auto-eviction is disabled");
+}
+```
+
+### Checking Availability
 
 ```java
 // Check if token can be added before attempting
@@ -235,27 +420,24 @@ if (tokenHa.availableToAdd()) {
     boolean added = tokenHa.addIfAvailable("user123");
     System.out.println("Token added: " + added);
 } else {
-    System.out.println("Cannot add token: queue full or cooldown active");
-}
-
-// Alternative: Handle the boolean return value
-boolean success = tokenHa.addIfAvailable("user456");
-if (!success) {
-    System.out.println("Failed to add token (cooldown period not passed)");
-    
-    // Check specific reasons
     if (tokenHa.isFilled()) {
-        System.out.println("Note: Queue is full, but token would still be added by removing oldest");
-    } else if (!tokenHa.passedCoolTimeToAdd()) {
-        System.out.println("Reason: Cooldown period not passed");
+        System.out.println("Queue is full");
+        if (enableAutoEvictConfig) {
+            System.out.println("But token would still be added by auto-evicting oldest");
+        } else {
+            System.out.println("Token cannot be added - auto-eviction disabled");
+        }
+    }
+    if (!tokenHa.passedCoolTimeToAdd()) {
+        System.out.println("Cooldown period not passed");
     }
 }
 ```
 
-**Important Queue Behavior:**
-- When queue reaches max capacity, adding new tokens automatically removes the oldest token (FIFO behavior)
-- The only reason `addIfAvailable()` returns false is if the cooldown period hasn't passed
-- Use `availableToAdd()` to check if you can add without displacing existing tokens
+**Important Behavior Summary:**
+- **Auto-eviction enabled (default)**: Tokens are always added if cooldown passed, oldest evicted when needed
+- **Auto-eviction disabled**: Tokens rejected when queue is full, strict capacity enforcement
+- **Cooldown**: Always enforced regardless of auto-eviction setting
 
 ## Logging Configuration
 
